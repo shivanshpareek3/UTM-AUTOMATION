@@ -1,0 +1,2 @@
+sale_id,email,sale_date,order_amount,payment_status
+1,lead1@test.com,2024-01-15,1000.0,successful

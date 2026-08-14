@@ -1,0 +1,18 @@
+{
+  "report_name": "UTM Attribution Report",
+  "client_name": "Antigravity",
+  "start_date": "2024-01-01",
+  "end_date": "2024-12-31",
+  "cutoff_date": "2024-01-01",
+  "fallback_price": 8999.0,
+  "zero_roi_threshold": 5000.0,
+  "currency": "INR",
+  "fx_rate": 1.0,
+  "fx_date": "2024-01-01",
+  "sales_outside_reporting_window": "exclude",
+  "paid_markers": [
+    "paid", "cpc", "cpm", "ppc", "paid_social", "paid_search",
+    "google", "facebook", "instagram", "meta", "linkedin",
+    "youtube", "bing", "snapchat", "twitter", "ads", "advertisement"
+  ]
+}

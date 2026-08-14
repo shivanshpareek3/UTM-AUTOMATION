@@ -1,0 +1,100 @@
+{
+  "email": [
+    "email",
+    "email address",
+    "customer email",
+    "e-mail",
+    "e mail"
+  ],
+  "registration_date": [
+    "registration date",
+    "created_at",
+    "created at",
+    "signup date",
+    "date registered",
+    "order date",
+    "orderdate",
+    "order_date"
+  ],
+  "campaign": [
+    "campaign",
+    "campaign name",
+    "utm_source",
+    "utm_campaign"
+  ],
+  "ad_set": [
+    "ad set",
+    "ad set name",
+    "adset",
+    "utm_medium"
+  ],
+  "ad": [
+    "ad",
+    "ad name"
+  ],
+  "ad_creative": [
+    "creative",
+    "ad creative",
+    "utm_content"
+  ],
+  "spend": [
+    "spend",
+    "amount spent",
+    "amount_spent",
+    "amount spent (inr)",
+    "amount spent (usd)"
+  ],
+  "Day": [
+    "day",
+    "reporting starts",
+    "reporting ends"
+  ],
+  "webinar_type": [
+    "webinar type",
+    "type",
+    "event type"
+  ],
+  "phone": [
+    "phone",
+    "phone number",
+    "mobile"
+  ],
+  "registration_fee": [
+    "registration fee paid",
+    "registration fee",
+    "fee paid"
+  ],
+  "sale_date": [
+    "sale date",
+    "order date",
+    "purchase date",
+    "date of sale"
+  ],
+  "order_amount": [
+    "order amount",
+    "amount",
+    "total",
+    "price",
+    "amount received",
+    "amount received (sub)",
+    "mango price(sub)",
+    "mango price"
+  ],
+  "registration_amount": [
+    "registration amount",
+    "registration fee",
+    "registration fees",
+    "amount paid",
+    "paid amount",
+    "payment amount",
+    "enrollment amount",
+    "enrollment fee",
+    "admission amount",
+    "admission fee"
+  ],
+  "payment_status": [
+    "payment status",
+    "status",
+    "order status"
+  ]
+}

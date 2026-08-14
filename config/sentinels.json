@@ -1,0 +1,14 @@
+[
+  "blank",
+  "--",
+  "null",
+  "{{campaign.name}}",
+  "{{adset.name}}",
+  "{{ad.name}}",
+  "fb",
+  "facebook",
+  "paid",
+  "instagram",
+  "google",
+  "ig"
+]
