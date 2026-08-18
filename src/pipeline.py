@@ -264,7 +264,8 @@ def run_pipeline(
         assumed_payment_cnt=assumed_payment_cnt,
         fallback_amount_cnt=fallback_amount_cnt,
         missing_sales_cnt=missing_sales_cnt,
-        standalone_reg_revenue=standalone_reg_rev
+        standalone_reg_revenue=standalone_reg_rev,
+        metrics=metrics
     )
     
     # Prepare data for Excel
@@ -311,12 +312,20 @@ def run_pipeline(
         settings_df = pd.concat([settings_df, pd.DataFrame([{'Setting': 'Note', 'Value': 'Revenue (Total and Attributed) is Assumed/Fallback Revenue because actual order amounts were not provided.'}])], ignore_index=True)
     
     # Supporting sheets
-    ad_account_comp = pd.DataFrame() # Mocking for now, as account mapping wasn't fully built
-    zero_roi = camp_sum[(camp_sum['Spend'] >= settings.get('zero_roi_threshold', 5000)) & (camp_sum['Sales'] == 0)] if not camp_sum.empty and 'Spend' in camp_sum.columns else pd.DataFrame()
+    ad_account_comp = pd.DataFrame([
+        {'Metric': 'Raw Meta Spend', 'Value': metrics['raw_meta_spend']},
+        {'Metric': 'Attributed Spend', 'Value': metrics['attributed_spend']},
+        {'Metric': 'Unallocated Spend', 'Value': metrics['unallocated_spend']}
+    ])
+    zero_roi = camp_sum[(camp_sum['Sales'] == 0) & (camp_sum['Spend'] > 0)] if not camp_sum.empty and 'Spend' in camp_sum.columns else pd.DataFrame()
     unattributed_sales = sales_df[sales_df['attribution_source'] == 'Unattributed'] if not sales_df.empty else pd.DataFrame()
     old_leads = sales_df[sales_df['new_old_lead'] == 'Old'] if not sales_df.empty else pd.DataFrame()
     spend_ref = meta_df.copy()
-    free_paid = pd.DataFrame() # Needs detailed split for funnel
+    free_paid = pd.DataFrame([
+        {'Funnel Stage': 'Total Leads', 'Count': metrics['total_leads']},
+        {'Funnel Stage': 'Paid Leads', 'Count': metrics['paid_leads']},
+        {'Funnel Stage': 'Unpaid Leads', 'Count': metrics['unpaid_leads']}
+    ])
     
     workbook_data = {
         "1. ⚙ Settings & Run Log": settings_df,

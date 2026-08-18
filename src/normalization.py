@@ -56,9 +56,16 @@ def normalize_phone(phone) -> str:
     """Remove spaces, hyphens, brackets, +91 from phone numbers."""
     if pd.isna(phone) or phone is None:
         return ""
-    phone = str(phone).strip()
     
-    # Remove .0 suffix if it came from a float
+    if isinstance(phone, float):
+        try:
+            phone = str(int(phone))
+        except ValueError:
+            phone = str(phone)
+    else:
+        phone = str(phone).strip()
+        
+    # Remove .0 suffix if it came from a float string
     if phone.endswith('.0'):
         phone = phone[:-2]
         

@@ -17,7 +17,8 @@ def run_verification(
     assumed_payment_cnt: int = 0,
     fallback_amount_cnt: int = 0,
     missing_sales_cnt: int = 0,
-    standalone_reg_revenue: float = 0.0
+    standalone_reg_revenue: float = 0.0,
+    metrics: dict = None
 ) -> pd.DataFrame:
     
     results = []
@@ -158,4 +159,46 @@ def run_verification(
         'WARNING' if missing_sales_cnt > 0 else 'PASS'
     )
     
+    if metrics:
+        # Golden Checks
+        def assert_metric(name, expected, metric_key):
+            actual = metrics.get(metric_key, 0)
+            if str(actual).strip() == 'N/A' or pd.isna(actual):
+                actual = 0.0
+            diff = abs(expected - float(actual))
+            add_check(
+                f'G. {name}', expected, round(actual, 2) if isinstance(actual, float) else actual, round(diff, 2),
+                f'Golden Report verification for {name}',
+                'PASS' if diff < 0.1 else 'FAIL'
+            )
+            
+        assert_metric('Total Sales', 52, 'total_sales')
+        assert_metric('Attributed Sales', 49, 'attributed_sales')
+        assert_metric('Unattributed Sales', 3, 'unattributed_sales')
+        assert_metric('Total Revenue', 467948, 'total_revenue')
+        assert_metric('Attributed Revenue', 440951, 'attributed_revenue')
+        assert_metric('Unattributed Revenue', 26997, 'unattributed_revenue')
+        assert_metric('Raw Meta Spend', 456047.55, 'raw_meta_spend')
+        assert_metric('Attributed Spend', 282120.59, 'attributed_spend')
+        assert_metric('Unallocated Spend', 173926.96, 'unallocated_spend')
+        assert_metric('Profit', 158830.41, 'profit')
+        assert_metric('ROAS', 1.56, 'roas')
+        assert_metric('ROI %', 56.30, 'roi_percent')
+        assert_metric('CAC', 5757.56, 'cac')
+        
+        # Invariants
+        def safe_float(v):
+            if str(v).strip() == 'N/A' or pd.isna(v):
+                return 0.0
+            return float(v)
+            
+        rev_inv_diff = abs((safe_float(metrics.get('attributed_revenue')) + safe_float(metrics.get('unattributed_revenue'))) - safe_float(metrics.get('total_revenue')))
+        add_check('INV. Revenue Formula', 0, rev_inv_diff, rev_inv_diff, 'Attributed + Unattributed = Total Revenue', 'PASS' if rev_inv_diff < 0.1 else 'FAIL')
+        
+        spend_inv_diff = abs((safe_float(metrics.get('attributed_spend')) + safe_float(metrics.get('unallocated_spend'))) - safe_float(metrics.get('raw_meta_spend')))
+        add_check('INV. Spend Formula', 0, spend_inv_diff, spend_inv_diff, 'Attributed + Unallocated = Raw Spend', 'PASS' if spend_inv_diff < 0.1 else 'FAIL')
+        
+        profit_inv_diff = abs((safe_float(metrics.get('attributed_revenue')) - safe_float(metrics.get('attributed_spend'))) - safe_float(metrics.get('profit')))
+        add_check('INV. Profit Formula', 0, profit_inv_diff, profit_inv_diff, 'Attributed Revenue - Attributed Spend = Profit', 'PASS' if profit_inv_diff < 0.1 else 'FAIL')
+
     return pd.DataFrame(results)

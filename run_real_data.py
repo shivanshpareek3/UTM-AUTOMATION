@@ -72,17 +72,18 @@ def inspect_and_run(leads_path, sales_path, meta_paths):
     # "Start Date: 2026-01-01, End Date: 2026-12-31, Sale Date Source: Lead Registration Date"
     # I'll use the Meta dates if available to bracket the exact end date, but to encompass all leads, maybe 2026-01-01 to 2026-12-31 is safest based on phase 10.
     
-    # I'll use Phase 10 settings:
+    # I'll use Golden Report settings:
     settings = {
-        'report_name': 'Real Data Test Report',
+        'report_name': 'Golden Master Report',
         'client_name': 'Abhishek Pal',
         'lead_start_date': '2026-01-01',
         'lead_end_date': '2026-12-31',
         'ad_start_date': '2026-01-01',
         'ad_end_date': '2026-12-31',
-        'cutoff_date': '2026-08-01',
+        'cutoff_date': '2026-01-01',
         'sale_date_source': 'Lead Registration Date',
         'payment_status_source': 'Treat All Imported Sales as Successful',
+        'amount_source': 'Fallback Price Per Sale',
         'fallback_price': 8999.0,
         'currency': 'INR',
         'zero_roi_threshold': 5000

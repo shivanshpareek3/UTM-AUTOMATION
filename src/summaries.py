@@ -9,10 +9,16 @@ def build_summaries(all_sales_df: pd.DataFrame, leads_df: pd.DataFrame, camp_spe
             
         if spend_df.empty:
             spend_df = pd.DataFrame(columns=level_cols + ['Amount Spent'])
+        else:
+            for col in level_cols:
+                if col in spend_df.columns:
+                    spend_df = spend_df[~spend_df[col].isin(['', 'Unattributed', 'unattributed'])]
         
         # Aggregate sales metrics
         # Only include sales that have valid matching at this level or below
-        valid_sales = all_sales_df.dropna(subset=level_cols)
+        valid_sales = all_sales_df.dropna(subset=level_cols).copy()
+        for col in level_cols:
+            valid_sales = valid_sales[~valid_sales[col].isin(['', 'Unattributed', 'unattributed'])]
         if valid_sales.empty:
             sales_agg = pd.DataFrame(columns=level_cols + ['Sales', 'Revenue', 'Attributed_Spend'])
         else:
@@ -25,7 +31,9 @@ def build_summaries(all_sales_df: pd.DataFrame, leads_df: pd.DataFrame, camp_spe
             
         # Aggregate leads (if available)
         if not leads_df.empty and set(level_cols).issubset(leads_df.columns):
-            valid_leads = leads_df.dropna(subset=level_cols)
+            valid_leads = leads_df.dropna(subset=level_cols).copy()
+            for col in level_cols:
+                valid_leads = valid_leads[~valid_leads[col].isin(['', 'Unattributed', 'unattributed'])]
             leads_agg = valid_leads.groupby(level_cols).size().reset_index(name='Leads')
             
             # Calculate standalone registration revenue

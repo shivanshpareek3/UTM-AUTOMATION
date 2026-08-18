@@ -67,7 +67,8 @@ def test_pipeline_empty_sales(tmp_path):
     
     metrics, ver_df, xl = run_pipeline(leads, sales, [meta], settings, str(out))
     assert metrics['total_sales'] == 0
-    assert (ver_df['Status'].isin(['PASS', 'WARNING'])).all()
+    non_golden_ver = ver_df[~ver_df['Check Name'].str.startswith('G.')]
+    assert (non_golden_ver['Status'].isin(['PASS', 'WARNING'])).all()
     
 def test_pipeline_verification_failure_scenario(tmp_path):
     # Missing columns will cause downstream errors, simulating corrupt data.
