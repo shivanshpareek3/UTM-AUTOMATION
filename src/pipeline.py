@@ -39,9 +39,17 @@ def run_pipeline(
     # 1. Column Mapping
     leads_df = map_columns(leads_df, aliases)
     sales_df = map_columns(sales_df, aliases)
-    meta_df = pd.concat(meta_dfs, ignore_index=True) if meta_dfs else pd.DataFrame()
+    
+    if meta_dfs:
+        for i, df in enumerate(meta_dfs):
+            df['source_file_id'] = i
+        meta_df = pd.concat(meta_dfs, ignore_index=True)
+    else:
+        meta_df = pd.DataFrame()
+        
     if not meta_df.empty:
-        meta_df = meta_df.drop_duplicates(ignore_index=True)
+        subset_cols = [c for c in meta_df.columns if c != 'source_file_id']
+        meta_df = meta_df.drop_duplicates(subset=subset_cols, ignore_index=True)
     meta_df = map_columns(meta_df, aliases)
     
     # Remove hierarchical summary rows where ad is 'all' or empty
