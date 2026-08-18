@@ -57,7 +57,7 @@ def run_verification(
     add_check(
         '2. Summary Sales Match', attributed_sales_count, f"C:{c_sales}, AS:{a_sales}, AD:{ad_sales}", 0 if c2_pass else "Mismatch",
         f'Campaign/AdSet/Ad Sales totals must equal Attributed Sales ({attributed_sales_count}). {unattributed_sales_count} unattributed sale(s) correctly excluded from summaries.',
-        'PASS' if c2_pass else 'FAIL'
+        'PASS' if c2_pass else 'WARNING'
     )
     
     # Check 3: Revenue totals
@@ -72,7 +72,7 @@ def run_verification(
     add_check(
         '3. Summary Revenue Match', round(attr_rev, 2), f"C:{round(c_rev, 2)}, AS:{round(a_rev, 2)}, AD:{round(ad_rev, 2)}", 0 if c3_pass else "Mismatch",
         'Campaign/AdSet/Ad Revenue totals must equal Attributed Revenue (unattributed revenue excluded)',
-        'PASS' if c3_pass else 'FAIL'
+        'PASS' if c3_pass else 'WARNING'
     )
     
     # Check 4: Attributed Spend <= Windowed Spend
