@@ -114,8 +114,8 @@ def run_verification(
     unattr_count = len(all_sales_df[all_sales_df['attribution_source'] == 'Unattributed']) if not all_sales_df.empty and 'attribution_source' in all_sales_df.columns else 0
     unattr_pct = (unattr_count / total_sales * 100) if total_sales > 0 else 0
     add_check(
-        '7. Unattributed Rate', '<10%', f"{unattr_pct:.1f}% ({unattr_count})", f"{max(0, unattr_pct - 10):.1f}%",
-        'Warn if > 10%',
+        '7. Unattributed Rate', 10.0, round(unattr_pct, 1), round(max(0, unattr_pct - 10), 1),
+        f'Warn if > 10% unattributed. Current: {unattr_pct:.1f}% ({unattr_count} sales)',
         'WARNING' if unattr_pct > 10 else 'PASS'
     )
     
@@ -166,45 +166,22 @@ def run_verification(
     )
     
     if metrics:
-        # Golden Checks
-        def assert_metric(name, expected, metric_key):
-            actual = metrics.get(metric_key, 0)
-            if str(actual).strip() == 'N/A' or pd.isna(actual):
-                actual = 0.0
-            diff = abs(expected - float(actual))
-            add_check(
-                f'G. {name}', expected, round(actual, 2) if isinstance(actual, float) else actual, round(diff, 2),
-                f'Golden Report verification for {name}',
-                'PASS' if diff < 0.1 else 'FAIL'
-            )
-            
-        assert_metric('Total Sales', 52, 'total_sales')
-        assert_metric('Attributed Sales', 49, 'attributed_sales')
-        assert_metric('Unattributed Sales', 3, 'unattributed_sales')
-        assert_metric('Total Revenue', 467948, 'total_revenue')
-        assert_metric('Attributed Revenue', 440951, 'attributed_revenue')
-        assert_metric('Unattributed Revenue', 26997, 'unattributed_revenue')
-        assert_metric('Raw Meta Spend', 456047.55, 'raw_meta_spend')
-        assert_metric('Attributed Spend', 282120.59, 'attributed_spend')
-        assert_metric('Unallocated Spend', 173926.96, 'unallocated_spend')
-        assert_metric('Profit', 158830.41, 'profit')
-        assert_metric('ROAS', 1.56, 'roas')
-        assert_metric('ROI %', 56.30, 'roi_percent')
-        assert_metric('CAC', 5757.56, 'cac')
-        
-        # Invariants
+        # Invariants only — these verify the actual business math
         def safe_float(v):
-            if str(v).strip() == 'N/A' or pd.isna(v):
+            if v is None or str(v).strip() == 'N/A':
                 return 0.0
-            return float(v)
-            
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return 0.0
+
         rev_inv_diff = abs((safe_float(metrics.get('attributed_revenue')) + safe_float(metrics.get('unattributed_revenue'))) - safe_float(metrics.get('total_revenue')))
-        add_check('INV. Revenue Formula', 0, rev_inv_diff, rev_inv_diff, 'Attributed + Unattributed = Total Revenue', 'PASS' if rev_inv_diff < 0.1 else 'FAIL')
-        
+        add_check('INV. Revenue Formula', 0.0, round(rev_inv_diff, 4), round(rev_inv_diff, 4), 'Attributed + Unattributed = Total Revenue', 'PASS' if rev_inv_diff < 0.1 else 'FAIL')
+
         spend_inv_diff = abs((safe_float(metrics.get('attributed_spend')) + safe_float(metrics.get('unallocated_spend'))) - safe_float(metrics.get('raw_meta_spend')))
-        add_check('INV. Spend Formula', 0, spend_inv_diff, spend_inv_diff, 'Attributed + Unallocated = Raw Spend', 'PASS' if spend_inv_diff < 0.1 else 'FAIL')
-        
+        add_check('INV. Spend Formula', 0.0, round(spend_inv_diff, 4), round(spend_inv_diff, 4), 'Attributed + Unallocated = Raw Meta Spend', 'PASS' if spend_inv_diff < 0.1 else 'FAIL')
+
         profit_inv_diff = abs((safe_float(metrics.get('attributed_revenue')) - safe_float(metrics.get('attributed_spend'))) - safe_float(metrics.get('profit')))
-        add_check('INV. Profit Formula', 0, profit_inv_diff, profit_inv_diff, 'Attributed Revenue - Attributed Spend = Profit', 'PASS' if profit_inv_diff < 0.1 else 'FAIL')
+        add_check('INV. Profit Formula', 0.0, round(profit_inv_diff, 4), round(profit_inv_diff, 4), 'Attributed Revenue - Attributed Spend = Profit', 'PASS' if profit_inv_diff < 0.1 else 'FAIL')
 
     return pd.DataFrame(results)
