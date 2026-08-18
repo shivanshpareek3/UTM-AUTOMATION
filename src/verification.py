@@ -44,28 +44,34 @@ def run_verification(
     )
     
     # Check 2: Sales totals
+    # Campaign summaries only contain ATTRIBUTED sales (unattributed sales have no campaign)
+    # So we compare against attributed sales count, not total sales
     total_sales = len(all_sales_df)
+    attributed_sales_count = len(all_sales_df[all_sales_df['attribution_source'] != 'Unattributed']) if 'attribution_source' in all_sales_df.columns else total_sales
+    unattributed_sales_count = total_sales - attributed_sales_count
     c_sales = camp_summary['Sales'].sum() if not camp_summary.empty else 0
     a_sales = adset_summary['Sales'].sum() if not adset_summary.empty else 0
     ad_sales = ad_summary['Sales'].sum() if not ad_summary.empty else 0
     
-    c2_pass = (total_sales == c_sales == a_sales == ad_sales)
+    c2_pass = (attributed_sales_count == c_sales == a_sales == ad_sales)
     add_check(
-        '2. Summary Sales Match', total_sales, f"C:{c_sales}, AS:{a_sales}, AD:{ad_sales}", 0 if c2_pass else "Mismatch",
-        'Campaign/AdSet/Ad Sales totals must equal Total Sales',
+        '2. Summary Sales Match', attributed_sales_count, f"C:{c_sales}, AS:{a_sales}, AD:{ad_sales}", 0 if c2_pass else "Mismatch",
+        f'Campaign/AdSet/Ad Sales totals must equal Attributed Sales ({attributed_sales_count}). {unattributed_sales_count} unattributed sale(s) correctly excluded from summaries.',
         'PASS' if c2_pass else 'FAIL'
     )
     
     # Check 3: Revenue totals
-    total_rev = all_sales_df['total_revenue'].sum() if not all_sales_df.empty and 'total_revenue' in all_sales_df.columns else 0.0
+    # Campaign summaries only show attributed revenue — compare against attributed revenue only
+    attributed_sales_df = all_sales_df[all_sales_df['attribution_source'] != 'Unattributed'] if 'attribution_source' in all_sales_df.columns else all_sales_df
+    attr_rev = attributed_sales_df['total_revenue'].sum() if not attributed_sales_df.empty and 'total_revenue' in attributed_sales_df.columns else 0.0
     c_rev = camp_summary['Revenue'].sum() if not camp_summary.empty else 0.0
     a_rev = adset_summary['Revenue'].sum() if not adset_summary.empty else 0.0
     ad_rev = ad_summary['Revenue'].sum() if not ad_summary.empty else 0.0
     
-    c3_pass = (abs(total_rev - c_rev) < 1.0) and (abs(total_rev - a_rev) < 1.0) and (abs(total_rev - ad_rev) < 1.0)
+    c3_pass = (abs(attr_rev - c_rev) < 1.0) and (abs(attr_rev - a_rev) < 1.0) and (abs(attr_rev - ad_rev) < 1.0)
     add_check(
-        '3. Summary Revenue Match', round(total_rev, 2), f"C:{round(c_rev, 2)}, AS:{round(a_rev, 2)}, AD:{round(ad_rev, 2)}", 0 if c3_pass else "Mismatch",
-        'Campaign/AdSet/Ad Revenue totals must equal Total Revenue',
+        '3. Summary Revenue Match', round(attr_rev, 2), f"C:{round(c_rev, 2)}, AS:{round(a_rev, 2)}, AD:{round(ad_rev, 2)}", 0 if c3_pass else "Mismatch",
+        'Campaign/AdSet/Ad Revenue totals must equal Attributed Revenue (unattributed revenue excluded)',
         'PASS' if c3_pass else 'FAIL'
     )
     
