@@ -144,7 +144,7 @@ def run_pipeline(
     meta_start = settings.get('meta_start_date', settings.get('ad_start_date'))
     meta_end = settings.get('meta_end_date', settings.get('ad_end_date'))
     sales_df, camp_spend, adset_spend, ad_spend = allocate_spend(
-        sales_df, meta_df, meta_start, meta_end
+        sales_df, meta_df, leads_df, meta_start, meta_end
     )
     
     # 6. Funnel Logic (Free/Paid, Old/New)
@@ -209,11 +209,23 @@ def run_pipeline(
         meta_df['Day'] = pd.to_datetime(meta_df['Day'], errors='coerce')
         sdt = pd.to_datetime(settings.get('meta_start_date', settings.get('ad_start_date')))
         edt = pd.to_datetime(settings.get('meta_end_date', settings.get('ad_end_date')))
-        window_meta = meta_df[(meta_df['Day'] >= sdt) & (meta_df['Day'] <= edt)]
-        if 'Amount Spent' in window_meta.columns:
-            total_windowed_meta_spend = window_meta['Amount Spent'].sum()
-        elif 'spend' in window_meta.columns:
-            total_windowed_meta_spend = window_meta['spend'].sum()
+        window_meta = meta_df[(meta_df['Day'] >= sdt) & (meta_df['Day'] <= edt)].copy()
+        
+        # Exclude blank campaigns
+        from src.normalization import unify_campaign_name
+        if 'campaign' in window_meta.columns:
+            window_meta['camp_norm'] = window_meta['campaign'].apply(unify_campaign_name)
+        elif 'Campaign Name' in window_meta.columns:
+            window_meta['camp_norm'] = window_meta['Campaign Name'].apply(unify_campaign_name)
+        else:
+            window_meta['camp_norm'] = "unmapped"
+            
+        valid_window_meta = window_meta[window_meta['camp_norm'] != '']
+        
+        if 'Amount Spent' in valid_window_meta.columns:
+            total_windowed_meta_spend = valid_window_meta['Amount Spent'].sum()
+        elif 'spend' in valid_window_meta.columns:
+            total_windowed_meta_spend = valid_window_meta['spend'].sum()
 
     total_leads_in_window = len(leads_in_window)
         

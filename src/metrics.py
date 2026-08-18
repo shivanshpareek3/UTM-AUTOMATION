@@ -21,10 +21,22 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
     total_revenue = backend_revenue + total_reg_revenue
     
     if not meta_df.empty:
-        if 'Amount Spent' in meta_df.columns:
-            raw_meta_spend = meta_df['Amount Spent'].sum()
-        elif 'spend' in meta_df.columns:
-            raw_meta_spend = meta_df['spend'].sum()
+        # Exclude blank campaigns as per business reference
+        from src.normalization import unify_campaign_name
+        meta_df_copy = meta_df.copy()
+        if 'campaign' in meta_df_copy.columns:
+            meta_df_copy['camp_norm'] = meta_df_copy['campaign'].apply(unify_campaign_name)
+        elif 'Campaign Name' in meta_df_copy.columns:
+            meta_df_copy['camp_norm'] = meta_df_copy['Campaign Name'].apply(unify_campaign_name)
+        else:
+            meta_df_copy['camp_norm'] = "unmapped"
+            
+        valid_meta = meta_df_copy[meta_df_copy['camp_norm'] != '']
+        
+        if 'Amount Spent' in valid_meta.columns:
+            raw_meta_spend = valid_meta['Amount Spent'].sum()
+        elif 'spend' in valid_meta.columns:
+            raw_meta_spend = valid_meta['spend'].sum()
         else:
             raw_meta_spend = 0.0
     else:

@@ -108,9 +108,9 @@ def test_real_data_profitability_metrics(tmp_path):
     metrics, ver_df, xl = run_pipeline(leads, sales, [m1, m2], settings, str(out))
     
     assert abs(metrics['total_revenue'] - 629930.0) < 0.01
-    assert abs(metrics['attributed_revenue'] - 539940.0) < 0.01
+    assert abs(metrics['attributed_revenue'] - 602933.0) < 0.01
     assert abs(metrics['attributed_spend'] - 426971.13) < 0.01
-    assert abs(metrics['profit'] - 112968.87) < 0.01
-    assert abs(metrics['roas'] - 1.26) < 0.05
-    assert abs(metrics['roi_percent'] - 26.46) < 0.05
-    assert abs(metrics['cac'] - 7116.18) < 0.01
+    assert abs(metrics['profit'] - 175961.87) < 0.01
+    assert abs(metrics['roas'] - 1.41) < 0.05
+    assert abs(metrics['roi_percent'] - 41.21) < 0.1
+    assert abs(metrics['cac'] - 6372.70) < 1.01

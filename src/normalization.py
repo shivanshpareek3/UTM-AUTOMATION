@@ -43,15 +43,25 @@ def parse_date_series(series: pd.Series) -> pd.Series:
 
 def normalize_email(email) -> str:
     """Lowercase and trim email."""
-    if pd.isna(email):
+    if pd.isna(email) or email is None:
         return ""
-    return str(email).lower().strip()
+    email_str = str(email).lower().strip()
+    if email_str in ('nan', 'null', 'none'):
+        return ""
+    # Remove all spaces inside email
+    email_str = re.sub(r'\s+', '', email_str)
+    return email_str
 
 def normalize_phone(phone) -> str:
     """Remove spaces, hyphens, brackets, +91 from phone numbers."""
-    if pd.isna(phone):
+    if pd.isna(phone) or phone is None:
         return ""
-    phone = str(phone)
+    phone = str(phone).strip()
+    
+    # Remove .0 suffix if it came from a float
+    if phone.endswith('.0'):
+        phone = phone[:-2]
+        
     # Remove everything except digits
     digits = re.sub(r'\D', '', phone)
     

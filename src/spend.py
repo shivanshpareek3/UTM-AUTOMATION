@@ -4,7 +4,7 @@ from typing import Tuple
 
 logger = logging.getLogger(__name__)
 
-def allocate_spend(sales_df: pd.DataFrame, meta_df: pd.DataFrame, start_date: str, end_date: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def allocate_spend(sales_df: pd.DataFrame, meta_df: pd.DataFrame, leads_df: pd.DataFrame, start_date: str, end_date: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Allocate Meta spend to sales using 3-tier matching and proportional allocation.
     Returns: (attributed_sales_df, campaign_summary, adset_summary, ad_summary)
@@ -39,25 +39,49 @@ def allocate_spend(sales_df: pd.DataFrame, meta_df: pd.DataFrame, start_date: st
         
     window_meta['camp_norm'] = window_meta.get('campaign', window_meta.get('Campaign Name', pd.Series(dtype=str))).apply(norm_camp)
     
-    # Safely handle missing ad_set/ad columns in Meta reports (e.g. Campaign-level reports)
-    if 'ad_set' in window_meta.columns:
-        window_meta['adset_norm'] = window_meta['ad_set'].apply(norm)
-    elif 'Ad Set Name' in window_meta.columns:
-        window_meta['adset_norm'] = window_meta['Ad Set Name'].apply(norm)
-    else:
-        window_meta['adset_norm'] = ""
-        
-    if 'ad' in window_meta.columns:
-        window_meta['ad_norm'] = window_meta['ad'].apply(norm)
-    elif 'Ad Name' in window_meta.columns:
-        window_meta['ad_norm'] = window_meta['Ad Name'].apply(norm)
-    else:
-        window_meta['ad_norm'] = ""
+    # Exclude rows where campaign is blank/null/NaN
+    valid_meta = window_meta[window_meta['camp_norm'] != ''].copy()
     
-    # Aggregate spend at each level
-    ad_spend = window_meta.groupby(['camp_norm', 'adset_norm', 'ad_norm'])['Amount Spent'].sum().reset_index()
-    adset_spend = window_meta.groupby(['camp_norm', 'adset_norm'])['Amount Spent'].sum().reset_index()
-    camp_spend = window_meta.groupby(['camp_norm'])['Amount Spent'].sum().reset_index()
+    # Calculate top-level campaign spend from Meta
+    camp_meta_spend = valid_meta.groupby(['camp_norm'])['Amount Spent'].sum().reset_index()
+    
+    # Prepare Leads for Lead Share Allocation
+    if not leads_df.empty:
+        leads_df['camp_norm'] = leads_df['campaign'].apply(norm_camp) if 'campaign' in leads_df.columns else ""
+        leads_df['adset_norm'] = leads_df['ad_set'].apply(norm) if 'ad_set' in leads_df.columns else ""
+        leads_df['ad_norm'] = leads_df['ad_creative'].apply(norm) if 'ad_creative' in leads_df.columns else ""
+        
+        camp_leads = leads_df.groupby(['camp_norm']).size().reset_index(name='camp_leads')
+        adset_leads = leads_df.groupby(['camp_norm', 'adset_norm']).size().reset_index(name='adset_leads')
+        ad_leads = leads_df.groupby(['camp_norm', 'adset_norm', 'ad_norm']).size().reset_index(name='ad_leads')
+    else:
+        camp_leads = pd.DataFrame(columns=['camp_norm', 'camp_leads'])
+        adset_leads = pd.DataFrame(columns=['camp_norm', 'adset_norm', 'adset_leads'])
+        ad_leads = pd.DataFrame(columns=['camp_norm', 'adset_norm', 'ad_norm', 'ad_leads'])
+
+    # Merge campaign spend with campaign leads
+    camp_spend = pd.merge(camp_meta_spend, camp_leads, on='camp_norm', how='left')
+    camp_spend['camp_leads'] = camp_spend['camp_leads'].fillna(0)
+    
+    # Remove campaigns that have 0 leads (unmappable) so they don't incorrectly get attributed to 0 sales
+    camp_spend = camp_spend[camp_spend['camp_leads'] > 0].copy()
+
+    # Ad Set Allocation (Lead Share)
+    adset_spend = pd.merge(adset_leads, camp_spend[['camp_norm', 'Amount Spent', 'camp_leads']], on='camp_norm', how='inner')
+    adset_spend['Amount Spent'] = adset_spend.apply(
+        lambda r: r['Amount Spent'] * (r['adset_leads'] / r['camp_leads']) if r['camp_leads'] > 0 else 0.0, axis=1
+    )
+    
+    # Ad Allocation (Lead Share)
+    ad_spend = pd.merge(ad_leads, camp_spend[['camp_norm', 'Amount Spent', 'camp_leads']], on='camp_norm', how='inner')
+    ad_spend['Amount Spent'] = ad_spend.apply(
+        lambda r: r['Amount Spent'] * (r['ad_leads'] / r['camp_leads']) if r['camp_leads'] > 0 else 0.0, axis=1
+    )
+    
+    # Strip down columns to match previous aggregation structure
+    camp_spend = camp_spend[['camp_norm', 'Amount Spent']]
+    adset_spend = adset_spend[['camp_norm', 'adset_norm', 'Amount Spent']]
+    ad_spend = ad_spend[['camp_norm', 'adset_norm', 'ad_norm', 'Amount Spent']]
     
     if sales_df.empty:
         if 'attributed_spend' not in sales_df.columns:
@@ -83,7 +107,11 @@ def allocate_spend(sales_df: pd.DataFrame, meta_df: pd.DataFrame, start_date: st
     # Calculate allocated spend at Adset Level
     # Pool remaining spend from Ads into the Adset
     adset_pooled = ad_merged.groupby(['camp_norm', 'adset_norm'])['remaining_spend'].sum().reset_index()
-    adset_merged = pd.merge(adset_pooled, adset_sales_counts, on=['camp_norm', 'adset_norm'], how='left')
+    adset_merged = pd.merge(adset_spend, adset_pooled, on=['camp_norm', 'adset_norm'], how='left')
+    # If there are no ads, the remaining spend is the adset spend itself
+    adset_merged['remaining_spend'] = adset_merged['remaining_spend'].fillna(adset_merged['Amount Spent'])
+    
+    adset_merged = pd.merge(adset_merged, adset_sales_counts, on=['camp_norm', 'adset_norm'], how='left')
     adset_merged['sales_count'] = adset_merged['sales_count'].fillna(0)
     
     adset_merged['allocated_spend'] = adset_merged.apply(lambda r: r['remaining_spend'] if r['sales_count'] > 0 else 0.0, axis=1)
@@ -93,7 +121,10 @@ def allocate_spend(sales_df: pd.DataFrame, meta_df: pd.DataFrame, start_date: st
     # Calculate allocated spend at Campaign Level
     # Pool remaining spend from Adsets into the Campaign
     camp_pooled = adset_merged.groupby(['camp_norm'])['remaining_spend2'].sum().reset_index()
-    camp_merged = pd.merge(camp_pooled, camp_sales_counts, on=['camp_norm'], how='left')
+    camp_merged = pd.merge(camp_spend, camp_pooled, on=['camp_norm'], how='left')
+    camp_merged['remaining_spend2'] = camp_merged['remaining_spend2'].fillna(camp_merged['Amount Spent'])
+    
+    camp_merged = pd.merge(camp_merged, camp_sales_counts, on=['camp_norm'], how='left')
     camp_merged['sales_count'] = camp_merged['sales_count'].fillna(0)
     
     camp_merged['spend_per_sale'] = camp_merged.apply(lambda r: r['remaining_spend2'] / r['sales_count'] if r['sales_count'] > 0 else 0.0, axis=1)

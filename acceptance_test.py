@@ -13,11 +13,10 @@ from src.pipeline import run_pipeline
 print("STARTING REAL-WORLD ACCEPTANCE TEST...\n")
 
 # File paths
-leads_file = '/Users/apple/Downloads/12-08-2026_leads.csv'
-sales_file = '/Users/apple/Downloads/12-08-2026_sales(1).csv'
+leads_file = '/Users/apple/Downloads/20260815_053436_GlobalJobMasterclass1530328_subscriber.csv'
+sales_file = '/Users/apple/Downloads/15th Aug - Sheet3.csv'
 meta_files = [
-    '/Users/apple/Downloads/FML-X-Satyam-2-Campaigns-1-Aug-2026-12-Aug-2026.csv',
-    '/Users/apple/Downloads/SSA-X-SATYAM-KHANDELWAL-Campaigns-1-Aug-2026-12-Aug-2026.csv'
+    '/Users/apple/Downloads/FML-X-ABHISHEK-PAL-Campaigns-8-Aug-2026-14-Aug-2026.csv'
 ]
 
 print("A. Upload result")

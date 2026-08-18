@@ -16,6 +16,10 @@ def process_sales(df: pd.DataFrame, settings: dict) -> Tuple[pd.DataFrame, pd.Da
     if 'email' in df.columns:
         df['email'] = df['email'].apply(normalize_email)
         
+    if 'phone' in df.columns:
+        from src.normalization import normalize_phone
+        df['phone'] = df['phone'].apply(normalize_phone)
+        
     if 'sale_id' not in df.columns:
         df['sale_id'] = range(1, len(df) + 1)
         
