@@ -40,6 +40,13 @@ def run_pipeline(
     leads_df = map_columns(leads_df, aliases)
     sales_df = map_columns(sales_df, aliases)
     
+    # Remove repeated header rows from merged CSVs/sheets
+    if not leads_df.empty and 'email' in leads_df.columns:
+        leads_df = leads_df[~leads_df['email'].astype(str).str.lower().str.strip().isin(['email', 'email address', 'customer email'])]
+        
+    if not sales_df.empty and 'email' in sales_df.columns:
+        sales_df = sales_df[~sales_df['email'].astype(str).str.lower().str.strip().isin(['email', 'email address', 'customer email'])]
+    
     if meta_dfs:
         for i, df in enumerate(meta_dfs):
             df['source_file_id'] = i
@@ -55,6 +62,10 @@ def run_pipeline(
     # Remove hierarchical summary rows where ad is 'all' or empty
     if not meta_df.empty and 'ad' in meta_df.columns:
         meta_df = meta_df[~meta_df['ad'].astype(str).str.lower().str.strip().isin(['all', 'nan', ''])]
+        
+    # Remove repeated header rows from merged CSVs/sheets
+    if not meta_df.empty and 'campaign' in meta_df.columns:
+        meta_df = meta_df[~meta_df['campaign'].astype(str).str.lower().str.strip().isin(['campaign name', 'campaign'])]
         
     # Apply custom reporting period filter to Meta
     meta_start_str = settings.get('meta_start_date', settings.get('ad_start_date'))
@@ -231,9 +242,9 @@ def run_pipeline(
         valid_window_meta = window_meta[window_meta['camp_norm'] != '']
         
         if 'Amount Spent' in valid_window_meta.columns:
-            total_windowed_meta_spend = valid_window_meta['Amount Spent'].sum()
+            total_windowed_meta_spend = pd.to_numeric(valid_window_meta['Amount Spent'], errors='coerce').fillna(0).sum()
         elif 'spend' in valid_window_meta.columns:
-            total_windowed_meta_spend = valid_window_meta['spend'].sum()
+            total_windowed_meta_spend = pd.to_numeric(valid_window_meta['spend'], errors='coerce').fillna(0).sum()
 
     total_leads_in_window = len(leads_in_window)
         

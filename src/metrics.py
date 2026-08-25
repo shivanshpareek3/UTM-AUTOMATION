@@ -8,11 +8,11 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
     
     total_sales = len(sales_df)
     
-    backend_revenue = sales_df['order_amount'].sum() if 'order_amount' in sales_df.columns else 0.0
-    reg_revenue_sales = sales_df['registration_fee_applied'].sum() if 'registration_fee_applied' in sales_df.columns else 0.0
+    backend_revenue = pd.to_numeric(sales_df['order_amount'], errors='coerce').fillna(0).sum() if 'order_amount' in sales_df.columns else 0.0
+    reg_revenue_sales = pd.to_numeric(sales_df['registration_fee_applied'], errors='coerce').fillna(0).sum() if 'registration_fee_applied' in sales_df.columns else 0.0
     
     # Total reg revenue includes all valid paid registrations (even without backend)
-    total_reg_revenue = reg_rev_df['reg_revenue'].sum() if not reg_rev_df.empty else 0.0
+    total_reg_revenue = pd.to_numeric(reg_rev_df['reg_revenue'], errors='coerce').fillna(0).sum() if not reg_rev_df.empty else 0.0
     
     # We must not double count registration fee if it's already in sales_df.
     # Actually, the brief says:
@@ -34,15 +34,15 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
         valid_meta = meta_df_copy[meta_df_copy['camp_norm'] != '']
         
         if 'Amount Spent' in valid_meta.columns:
-            raw_meta_spend = valid_meta['Amount Spent'].sum()
+            raw_meta_spend = pd.to_numeric(valid_meta['Amount Spent'], errors='coerce').fillna(0).sum()
         elif 'spend' in valid_meta.columns:
-            raw_meta_spend = valid_meta['spend'].sum()
+            raw_meta_spend = pd.to_numeric(valid_meta['spend'], errors='coerce').fillna(0).sum()
         else:
             raw_meta_spend = 0.0
     else:
         raw_meta_spend = 0.0
         
-    attributed_spend = sales_df['attributed_spend'].sum() if 'attributed_spend' in sales_df.columns else 0.0
+    attributed_spend = pd.to_numeric(sales_df['attributed_spend'], errors='coerce').fillna(0).sum() if 'attributed_spend' in sales_df.columns else 0.0
     unallocated_spend = raw_meta_spend - attributed_spend
     
     if 'attribution_source' in sales_df.columns:
@@ -56,8 +56,8 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
     unattributed_sales = len(unattributed_sales_df)
     
     # Calculate attributed revenue
-    attributed_backend_revenue = attributed_sales_df['order_amount'].sum() if 'order_amount' in attributed_sales_df.columns else 0.0
-    attributed_reg_revenue = attributed_sales_df['registration_fee_applied'].sum() if 'registration_fee_applied' in attributed_sales_df.columns else 0.0
+    attributed_backend_revenue = pd.to_numeric(attributed_sales_df['order_amount'], errors='coerce').fillna(0).sum() if 'order_amount' in attributed_sales_df.columns else 0.0
+    attributed_reg_revenue = pd.to_numeric(attributed_sales_df['registration_fee_applied'], errors='coerce').fillna(0).sum() if 'registration_fee_applied' in attributed_sales_df.columns else 0.0
     attributed_revenue = attributed_backend_revenue + attributed_reg_revenue
     
     attributed_leads = len(leads_df[leads_df['has_valid_utm'] == True]) if 'has_valid_utm' in leads_df.columns else 0
