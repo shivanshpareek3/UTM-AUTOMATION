@@ -75,16 +75,25 @@ def run_verification(
         'PASS' if c3_pass else 'WARNING'
     )
     
-    # Check 4: Attributed Spend <= Windowed Spend
-    total_attr_spend = all_sales_df['attributed_spend'].sum() if not all_sales_df.empty and 'attributed_spend' in all_sales_df.columns else 0.0
-    c4_diff = total_windowed_meta_spend - total_attr_spend
-    c4_pass = c4_diff >= -0.01 # allow slight float rounding
-    add_check(
-        '4. Spend Invariant', total_windowed_meta_spend, total_attr_spend, round(c4_diff, 2),
-        'Total Attributed Spend <= Total Windowed Meta Spend',
-        'PASS' if c4_pass else 'FAIL'
-    )
-    
+    # Check 4: Spend Invariant
+    if metrics:
+        attr_sp = metrics.get('attributed_spend', 0.0)
+        unalloc_sp = metrics.get('unallocated_spend', 0.0)
+        calc_meta = attr_sp + unalloc_sp
+        c4_diff = total_windowed_meta_spend - calc_meta
+        c4_pass = abs(c4_diff) < 0.05
+        add_check(
+            '4. Spend Invariant', round(total_windowed_meta_spend, 2), round(calc_meta, 2), round(c4_diff, 2),
+            'Attributed Spend + Unallocated Spend must exactly equal Total Windowed Meta Spend',
+            'PASS' if c4_pass else 'FAIL'
+        )
+    else:
+        add_check(
+            '4. Spend Invariant', total_windowed_meta_spend, "N/A", "N/A",
+            'Metrics not provided for invariant check',
+            'WARNING'
+        )
+
     # Check 5: Summary spend totals
     c_s = camp_summary['Spend'].sum() if not camp_summary.empty and 'Spend' in camp_summary.columns else 0.0
     as_s = adset_summary['Spend'].sum() if not adset_summary.empty and 'Spend' in adset_summary.columns else 0.0
@@ -181,7 +190,7 @@ def run_verification(
         spend_inv_diff = abs((safe_float(metrics.get('attributed_spend')) + safe_float(metrics.get('unallocated_spend'))) - safe_float(metrics.get('raw_meta_spend')))
         add_check('INV. Spend Formula', 0.0, round(spend_inv_diff, 4), round(spend_inv_diff, 4), 'Attributed + Unallocated = Raw Meta Spend', 'PASS' if spend_inv_diff < 0.1 else 'FAIL')
 
-        profit_inv_diff = abs((safe_float(metrics.get('attributed_revenue')) - safe_float(metrics.get('attributed_spend'))) - safe_float(metrics.get('profit')))
-        add_check('INV. Profit Formula', 0.0, round(profit_inv_diff, 4), round(profit_inv_diff, 4), 'Attributed Revenue - Attributed Spend = Profit', 'PASS' if profit_inv_diff < 0.1 else 'FAIL')
+        profit_inv_diff = abs((safe_float(metrics.get('attributed_revenue')) - safe_float(metrics.get('raw_meta_spend'))) - safe_float(metrics.get('profit')))
+        add_check('INV. Profit Formula', 0.0, round(profit_inv_diff, 4), round(profit_inv_diff, 4), 'Attributed Revenue - Raw Meta Spend = Profit', 'PASS' if profit_inv_diff < 0.1 else 'FAIL')
 
     return pd.DataFrame(results)

@@ -6,7 +6,8 @@ def test_calculate_metrics():
     leads = pd.DataFrame({'email': ['A', 'B'], 'has_valid_utm': [True, False]})
     sales = pd.DataFrame({
         'email': ['A'],
-        'attribution_source': ['Leads DB (email)']
+        'attribution_source': ['Leads DB (email)'],
+        'campaign': ['C1']
     })
     reg_rev = pd.DataFrame({'reg_revenue': [50.0, 50.0]})
     meta = pd.DataFrame({
@@ -56,7 +57,8 @@ def test_profit_calculation_negative():
     leads = pd.DataFrame({'email': ['A']})
     sales = pd.DataFrame({
         'email': ['A'],
-        'attribution_source': ['Leads DB (email)']
+        'attribution_source': ['Leads DB (email)'],
+        'campaign': ['C1']
     })
     reg_rev = pd.DataFrame({'reg_revenue': [0.0]})
     meta = pd.DataFrame({
@@ -74,7 +76,8 @@ def test_profit_calculation_positive():
     leads = pd.DataFrame({'email': ['A']})
     sales = pd.DataFrame({
         'email': ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'],
-        'attribution_source': ['Leads DB (email)'] * 12
+        'attribution_source': ['Leads DB (email)'] * 12,
+        'campaign': ['C1'] * 12
     })
     reg_rev = pd.DataFrame({'reg_revenue': [0.0]})
     meta = pd.DataFrame({

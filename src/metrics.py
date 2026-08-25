@@ -23,18 +23,17 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
         valid_meta = meta_df_copy[meta_df_copy['camp_norm'] != '']
         
         if 'Amount Spent' in valid_meta.columns:
-            raw_meta_spend = pd.to_numeric(valid_meta['Amount Spent'], errors='coerce').fillna(0).sum()
+            valid_meta['Amount Spent Num'] = pd.to_numeric(valid_meta['Amount Spent'], errors='coerce').fillna(0)
+            raw_meta_spend = valid_meta['Amount Spent Num'].sum()
         elif 'spend' in valid_meta.columns:
-            raw_meta_spend = pd.to_numeric(valid_meta['spend'], errors='coerce').fillna(0).sum()
+            valid_meta['Amount Spent Num'] = pd.to_numeric(valid_meta['spend'], errors='coerce').fillna(0)
+            raw_meta_spend = valid_meta['Amount Spent Num'].sum()
         else:
             raw_meta_spend = 0.0
+            valid_meta['Amount Spent Num'] = 0.0
     else:
         raw_meta_spend = 0.0
         
-    # Golden methodology: All spend is treated as campaign spend. Unallocated is 0 unless filtered by date window.
-    attributed_spend = raw_meta_spend
-    unallocated_spend = 0.0
-    
     if 'attribution_source' in sales_df.columns:
         attributed_sales_df = sales_df[sales_df['attribution_source'] != 'Unattributed']
         unattributed_sales_df = sales_df[sales_df['attribution_source'] == 'Unattributed']
@@ -44,6 +43,16 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
         
     attributed_sales = len(attributed_sales_df)
     unattributed_sales = len(unattributed_sales_df)
+    
+    # Calculate Attributed Spend (Spend of campaigns that generated >= 1 sale)
+    if not meta_df.empty and not attributed_sales_df.empty:
+        from src.normalization import unify_campaign_name
+        attr_camps = set(attributed_sales_df['campaign'].dropna().apply(unify_campaign_name)) if 'campaign' in attributed_sales_df.columns else set()
+        attributed_spend = valid_meta[valid_meta['camp_norm'].isin(attr_camps)]['Amount Spent Num'].sum()
+    else:
+        attributed_spend = 0.0
+        
+    unallocated_spend = raw_meta_spend - attributed_spend
     
     # Calculate revenue using Matched Sales * realised_sale_value
     attributed_revenue = attributed_sales * fallback_price
@@ -60,7 +69,8 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
     backend_revenue = total_revenue
     total_reg_revenue = 0.0
     
-    profit = attributed_revenue - attributed_spend
+    # Golden methodology calculates top-level Profit, ROAS, ROI, CPL, and CAC using 100% of Meta spend
+    profit = attributed_revenue - raw_meta_spend
     
     paid_markers = settings.get('paid_markers', [
         "paid", "cpc", "cpm", "ppc", "paid_social", "paid_search",
@@ -88,11 +98,11 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
     paid_funnel_pct = (paid_leads / total_leads * 100) if total_leads > 0 else 0.0
     unpaid_funnel_pct = (unpaid_leads / total_leads * 100) if total_leads > 0 else 0.0
 
-    spend_attribution_rate = 100.0 if raw_meta_spend > 0 else "N/A"
-    roas = (attributed_revenue / attributed_spend) if attributed_spend > 0 else "N/A"
-    roi = (profit / attributed_spend * 100) if attributed_spend > 0 else "N/A"
-    cpl = (attributed_spend / total_leads) if total_leads > 0 else "N/A"
-    cac = (attributed_spend / attributed_sales) if (attributed_spend > 0 and attributed_sales > 0) else "N/A"
+    spend_attribution_rate = (attributed_spend / raw_meta_spend * 100) if raw_meta_spend > 0 else "N/A"
+    roas = (attributed_revenue / raw_meta_spend) if raw_meta_spend > 0 else "N/A"
+    roi = (profit / raw_meta_spend * 100) if raw_meta_spend > 0 else "N/A"
+    cpl = (raw_meta_spend / total_leads) if total_leads > 0 else "N/A"
+    cac = (raw_meta_spend / attributed_sales) if (raw_meta_spend > 0 and attributed_sales > 0) else "N/A"
     cvr = (attributed_sales / total_leads * 100) if total_leads > 0 else "N/A"
     
     per_sale_value = fallback_price
