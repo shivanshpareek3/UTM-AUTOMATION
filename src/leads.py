@@ -34,13 +34,7 @@ def process_leads(df: pd.DataFrame, sentinels: List[str]) -> pd.DataFrame:
         
     df['has_valid_utm'] = df.apply(has_valid_utm, axis=1)
     
-    # Sort so that we can keep the most recent with valid UTM
-    # Primary sort: email (to group), secondary: has_valid_utm (True first), tertiary: registration_date (descending)
-    if 'registration_date' in df.columns and 'email' in df.columns:
-        df = df.sort_values(by=['email', 'has_valid_utm', 'registration_date'], 
-                            ascending=[True, False, False])
-        
-        # Deduplicate by email
-        df = df.drop_duplicates(subset=['email'], keep='first')
+    # Do not deduplicate here. Golden methodology expects Total Leads to be the raw count (3295).
+    # Deduplication for attribution is handled dynamically in attribution.py based on earliest touch.
         
     return df

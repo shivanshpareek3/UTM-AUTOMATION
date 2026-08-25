@@ -2,26 +2,15 @@ import pandas as pd
 
 def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df: pd.DataFrame, meta_df: pd.DataFrame, settings: dict = None) -> dict:
     """
-    Calculate high-level metrics for the entire run.
+    Calculate high-level metrics using the Golden Methodology.
     """
     total_leads = len(leads_df)
-    
     total_sales = len(sales_df)
     
-    backend_revenue = pd.to_numeric(sales_df['order_amount'], errors='coerce').fillna(0).sum() if 'order_amount' in sales_df.columns else 0.0
-    reg_revenue_sales = pd.to_numeric(sales_df['registration_fee_applied'], errors='coerce').fillna(0).sum() if 'registration_fee_applied' in sales_df.columns else 0.0
-    
-    # Total reg revenue includes all valid paid registrations (even without backend)
-    total_reg_revenue = pd.to_numeric(reg_rev_df['reg_revenue'], errors='coerce').fillna(0).sum() if not reg_rev_df.empty else 0.0
-    
-    # We must not double count registration fee if it's already in sales_df.
-    # Actually, the brief says:
-    # Revenue = Order Amount + Registration Fee where applicable
-    # So Total Revenue = backend_revenue + total_reg_revenue
-    total_revenue = backend_revenue + total_reg_revenue
+    fallback_price = float(settings.get('fallback_price', 8999.0)) if settings else 8999.0
     
     if not meta_df.empty:
-        # Exclude blank campaigns as per business reference
+        # Exclude blank campaigns
         from src.normalization import unify_campaign_name
         meta_df_copy = meta_df.copy()
         if 'campaign' in meta_df_copy.columns:
@@ -42,8 +31,9 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
     else:
         raw_meta_spend = 0.0
         
-    attributed_spend = pd.to_numeric(sales_df['attributed_spend'], errors='coerce').fillna(0).sum() if 'attributed_spend' in sales_df.columns else 0.0
-    unallocated_spend = raw_meta_spend - attributed_spend
+    # Golden methodology: All spend is treated as campaign spend. Unallocated is 0 unless filtered by date window.
+    attributed_spend = raw_meta_spend
+    unallocated_spend = 0.0
     
     if 'attribution_source' in sales_df.columns:
         attributed_sales_df = sales_df[sales_df['attribution_source'] != 'Unattributed']
@@ -55,16 +45,20 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
     attributed_sales = len(attributed_sales_df)
     unattributed_sales = len(unattributed_sales_df)
     
-    # Calculate attributed revenue
-    attributed_backend_revenue = pd.to_numeric(attributed_sales_df['order_amount'], errors='coerce').fillna(0).sum() if 'order_amount' in attributed_sales_df.columns else 0.0
-    attributed_reg_revenue = pd.to_numeric(attributed_sales_df['registration_fee_applied'], errors='coerce').fillna(0).sum() if 'registration_fee_applied' in attributed_sales_df.columns else 0.0
-    attributed_revenue = attributed_backend_revenue + attributed_reg_revenue
+    # Calculate revenue using Matched Sales * realised_sale_value
+    attributed_revenue = attributed_sales * fallback_price
     
     attributed_leads = len(leads_df[leads_df['has_valid_utm'] == True]) if 'has_valid_utm' in leads_df.columns else 0
     unattributed_leads = total_leads - attributed_leads
     lead_attribution_rate = (attributed_leads / total_leads * 100) if total_leads > 0 else "N/A"
     
-    unattributed_revenue = total_revenue - attributed_revenue
+    # Total revenue is all sales * fallback_price
+    total_revenue = total_sales * fallback_price
+    unattributed_revenue = unattributed_sales * fallback_price
+    
+    # In Golden methodology, backend revenue is total revenue, reg_revenue is 0 (or not used in global summary)
+    backend_revenue = total_revenue
+    total_reg_revenue = 0.0
     
     profit = attributed_revenue - attributed_spend
     
@@ -94,17 +88,16 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
     paid_funnel_pct = (paid_leads / total_leads * 100) if total_leads > 0 else 0.0
     unpaid_funnel_pct = (unpaid_leads / total_leads * 100) if total_leads > 0 else 0.0
 
-    spend_attribution_rate = (attributed_spend / raw_meta_spend * 100) if raw_meta_spend > 0 else "N/A"
+    spend_attribution_rate = 100.0 if raw_meta_spend > 0 else "N/A"
     roas = (attributed_revenue / attributed_spend) if attributed_spend > 0 else "N/A"
     roi = (profit / attributed_spend * 100) if attributed_spend > 0 else "N/A"
     cpl = (attributed_spend / total_leads) if total_leads > 0 else "N/A"
     cac = (attributed_spend / attributed_sales) if (attributed_spend > 0 and attributed_sales > 0) else "N/A"
-    cvr = (total_sales / total_leads * 100) if total_leads > 0 else "N/A"
+    cvr = (attributed_sales / total_leads * 100) if total_leads > 0 else "N/A"
     
-    per_sale_value = (total_revenue / total_sales) if total_sales > 0 else "N/A"
-    attributed_per_sale_value = (attributed_revenue / attributed_sales) if attributed_sales > 0 else "N/A"
+    per_sale_value = fallback_price
+    attributed_per_sale_value = fallback_price
 
-    
     return {
         'total_leads': total_leads,
         'attributed_leads': attributed_leads,

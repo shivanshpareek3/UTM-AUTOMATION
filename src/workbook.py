@@ -37,14 +37,15 @@ def generate_workbook(filepath: str, data: Dict[str, pd.DataFrame]):
         "3. 📢 Campaign Summary",
         "4. 🎯 Ad Set Summary",
         "5. 🎨 Ad Creative Summary",
-        "6. 🏦 Ad Account Comparison",
-        "7. 💰 Free vs Paid Funnel",
-        "8. 🚨 Zero-ROI Waste Report",
-        "9. ❓ Unattributed Sales",
-        "10. 🔁 Old Leads (Separate)",
-        "11. 💳 Spend Reference",
-        "12. ✅ Verification",
-        "13. 🚫 Excluded Sales"
+        "6. 📍 Placement Summary",
+        "7. 🏦 Ad Account Comparison",
+        "8. 💰 Free vs Paid Funnel",
+        "9. 🚨 Zero-ROI Waste Report",
+        "10. ❓ Unattributed Sales",
+        "11. 🔁 Old Leads (Separate)",
+        "12. 💳 Spend Reference",
+        "13. ✅ Verification",
+        "14. 🚫 Excluded Sales"
     ]
     
     # Currency and Percentage formats

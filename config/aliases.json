@@ -19,8 +19,7 @@
   "campaign": [
     "campaign",
     "campaign name",
-    "utm_source",
-    "utm_campaign"
+    "utm_source"
   ],
   "ad_set": [
     "ad set",
@@ -36,6 +35,10 @@
     "creative",
     "ad creative",
     "utm_content"
+  ],
+  "placement": [
+    "placement",
+    "utm_campaign"
   ],
   "spend": [
     "spend",

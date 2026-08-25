@@ -72,9 +72,9 @@ def normalize_phone(phone) -> str:
     # Remove everything except digits
     digits = re.sub(r'\D', '', phone)
     
-    # Remove India prefix 91 if length > 10 and starts with 91
-    if len(digits) > 10 and digits.startswith('91'):
-        digits = digits[2:]
+    # Golden methodology: last 10 digits
+    if len(digits) > 10:
+        digits = digits[-10:]
         
     return digits
 

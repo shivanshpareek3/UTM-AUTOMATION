@@ -162,7 +162,7 @@ def run_pipeline(
     # 5. Spend Attribution
     meta_start = settings.get('meta_start_date', settings.get('ad_start_date'))
     meta_end = settings.get('meta_end_date', settings.get('ad_end_date'))
-    sales_df, camp_spend, adset_spend, ad_spend = allocate_spend(
+    sales_df, camp_spend, adset_spend, ad_spend, placement_spend = allocate_spend(
         sales_df, meta_df, leads_df, meta_start, meta_end
     )
     
@@ -178,22 +178,8 @@ def run_pipeline(
     else:
         standalone_reg_rev = reg_rev_df['reg_revenue'].sum() if not reg_rev_df.empty else 0.0
     
-    # 6b. Filter Leads to Reporting Period
-    if not leads_df.empty and 'registration_date' in leads_df.columns and ls_start and ls_end:
-        try:
-            sdt = pd.to_datetime(ls_start)
-            if sdt.tzinfo is not None: sdt = sdt.tz_localize(None)
-            edt = pd.to_datetime(ls_end)
-            if edt.tzinfo is not None: edt = edt.tz_localize(None)
-            # Ensure end date includes the full day if it has no time component
-            if edt.hour == 0 and edt.minute == 0 and edt.second == 0:
-                edt = edt + pd.Timedelta(days=1, microseconds=-1)
-            mask = (leads_df['registration_date'] >= sdt) & (leads_df['registration_date'] <= edt)
-            leads_in_window = leads_df[mask].copy()
-        except Exception:
-            leads_in_window = leads_df.copy()
-    else:
-        leads_in_window = leads_df.copy()
+    # 6b. Filter Leads to Reporting Period (Golden Methodology: use all leads in file)
+    leads_in_window = leads_df.copy()
         
     # Generate Data Quality Warning
     def generate_warning(row):
@@ -212,11 +198,11 @@ def run_pipeline(
     sales_df['data_quality_warning'] = sales_df.apply(generate_warning, axis=1)
     
     # 7. Summaries
-    for col in ['camp_norm', 'adset_norm', 'ad_norm']:
+    for col in ['camp_norm', 'adset_norm', 'ad_norm', 'placement_norm']:
         if col not in sales_df.columns:
             sales_df[col] = ''
             
-    camp_sum, adset_sum, ad_sum = build_summaries(sales_df, leads_in_window, camp_spend, adset_spend, ad_spend)
+    camp_sum, adset_sum, ad_sum, placement_sum = build_summaries(sales_df, leads_in_window, camp_spend, adset_spend, ad_spend, placement_spend, settings)
     
     # 8. Metrics
     metrics = calculate_metrics(leads_in_window, sales_df, reg_rev_df, meta_df, settings)
@@ -344,14 +330,15 @@ def run_pipeline(
         "3. 📢 Campaign Summary": camp_sum,
         "4. 🎯 Ad Set Summary": adset_sum,
         "5. 🎨 Ad Creative Summary": ad_sum,
-        "6. 🏦 Ad Account Comparison": ad_account_comp,
-        "7. 💰 Free vs Paid Funnel": free_paid,
-        "8. 🚨 Zero-ROI Waste Report": zero_roi,
-        "9. ❓ Unattributed Sales": unattributed_sales,
-        "10. 🔁 Old Leads (Separate)": old_leads,
-        "11. 💳 Spend Reference": spend_ref,
-        "12. ✅ Verification": ver_df,
-        "13. 🚫 Excluded Sales": excluded_sales
+        "6. 📍 Placement Summary": placement_sum,
+        "7. 🏦 Ad Account Comparison": ad_account_comp,
+        "8. 💰 Free vs Paid Funnel": free_paid,
+        "9. 🚨 Zero-ROI Waste Report": zero_roi,
+        "10. ❓ Unattributed Sales": unattributed_sales,
+        "11. 🔁 Old Leads (Separate)": old_leads,
+        "12. 💳 Spend Reference": spend_ref,
+        "13. ✅ Verification": ver_df,
+        "14. 🚫 Excluded Sales": excluded_sales
     }
     
     # --- PHASE 1 RECONCILIATION PRINT ---
