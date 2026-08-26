@@ -58,69 +58,64 @@ def normalize_text(text: str) -> str:
 
 def suggest_mapping(canonical_field: str, available_columns: List[str], aliases: Dict[str, List[str]]) -> str:
     """Suggest the best matching original column for a canonical field."""
-    # 1. Exact match
+    # 1. Exact match (case-sensitive)
+    for col in available_columns:
+        if col == canonical_field:
+            return col
+            
+    # 1.5. Exact match (case-insensitive and stripped)
     for col in available_columns:
         if col.lower().strip() == canonical_field.lower().strip():
             return col
-    
-    # 2. Alias match
-    if canonical_field in aliases:
-        for alias in aliases[canonical_field]:
-            for col in available_columns:
-                if col.lower().strip() == alias.lower().strip():
-                    return col
-                    
-    # 3. Normalized match
+
+    # 2. Normalized exact match
     norm_canonical = normalize_text(canonical_field)
     for col in available_columns:
         if normalize_text(col) == norm_canonical:
             return col
-            
+
+    # 3. Known alias match (exact or normalized)
     if canonical_field in aliases:
         for alias in aliases[canonical_field]:
+            # Try exact case-insensitive alias match first
+            for col in available_columns:
+                if col.lower().strip() == alias.lower().strip():
+                    return col
+            # Then try normalized alias match
             norm_alias = normalize_text(alias)
             for col in available_columns:
                 if normalize_text(col) == norm_alias:
                     return col
 
-    # 4. Partial substring matching (high confidence heuristics)
+    # 4. High-confidence field-specific heuristic (strictly constrained to prevent false positives)
     for col in available_columns:
-        lower_col = col.lower()
-        if canonical_field == 'email' and 'email' in lower_col:
+        lower_col = col.lower().strip()
+        # Ensure we don't accidentally map 'customer name' to 'email' if we ever did fuzzy matching.
+        # We only use very strict inclusion.
+        if canonical_field == 'email' and 'email' in lower_col and 'name' not in lower_col:
             return col
-        elif canonical_field == 'phone' and ('phone' in lower_col or 'mobile' in lower_col or 'contact' in lower_col):
+        elif canonical_field == 'phone' and ('phone' in lower_col or 'mobile' in lower_col or 'contact' in lower_col) and 'name' not in lower_col:
             return col
         elif canonical_field == 'registration_date' and (
             ('registration' in lower_col and ('date' in lower_col or 'time' in lower_col)) or 
             ('created' in lower_col and 'at' in lower_col)
         ):
             return col
-        elif canonical_field == 'campaign' and 'campaign' in lower_col and 'source' not in lower_col and 'medium' not in lower_col:
+        elif canonical_field == 'campaign' and 'campaign' in lower_col and 'source' not in lower_col and 'medium' not in lower_col and 'name' not in lower_col:
             return col
         elif canonical_field == 'ad_set' and ('adset' in lower_col or 'ad set' in lower_col):
             return col
-        elif canonical_field == 'ad_creative' and ('creative' in lower_col or 'ad name' in lower_col):
+        elif canonical_field == 'ad_creative' and ('creative' in lower_col):
             return col
-        elif canonical_field == 'spend' and ('spend' in lower_col or 'spent' in lower_col):
+        elif canonical_field == 'spend' and ('spend' in lower_col or 'spent' in lower_col) and 'name' not in lower_col:
             return col
         elif canonical_field == 'sale_date' and ('sale' in lower_col or 'order' in lower_col or 'purchase' in lower_col) and 'date' in lower_col:
             return col
-        elif canonical_field == 'Day' and ('date' in lower_col or 'day' in lower_col):
+        elif canonical_field == 'Day' and ('date' in lower_col or 'day' in lower_col) and 'name' not in lower_col:
             return col
 
-    # 5. Fuzzy match with HIGH confidence only
-    all_targets = [canonical_field]
-    if canonical_field in aliases:
-        all_targets.extend(aliases[canonical_field])
-        
-    for target in all_targets:
-        matches = difflib.get_close_matches(target.lower(), [c.lower() for c in available_columns], n=1, cutoff=0.9)
-        if matches:
-            for col in available_columns:
-                if col.lower() == matches[0]:
-                    return col
-                    
-    return "-- Ignore/Missing --"
+    # 5. Otherwise
+    return '-- Ignore/Missing --'
 
 def inspect_file(filename: str, df: pd.DataFrame, required_columns: List[str] = None):
     """Log file inspection details."""

@@ -56,7 +56,8 @@ def generate_workbook(filepath: str, data: Dict[str, pd.DataFrame]):
     for sheet_name in sheet_names:
         ws = wb.create_sheet(title=sheet_name[:31]) # Excel limits to 31 chars
         
-        df = data.get(sheet_name, pd.DataFrame())
+        df = data.get(sheet_name)
+        if df is None: df = pd.DataFrame()
         
         # Replace NaN/Inf with None for Excel
         df = df.replace([float('inf'), float('-inf')], None)

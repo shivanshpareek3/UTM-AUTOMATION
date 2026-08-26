@@ -19,13 +19,16 @@
   "campaign": [
     "campaign",
     "campaign name",
-    "utm_source",
-    "utm"
+    "utm_campaign",
+    "utm",
+    "utm source",
+    "utm_source"
   ],
   "ad_set": [
     "ad set",
     "ad set name",
     "adset",
+    "adset name",
     "utm_medium"
   ],
   "ad": [
@@ -34,7 +37,11 @@
   ],
   "ad_creative": [
     "creative",
+    "creative name",
+    "ad",
+    "ad name",
     "ad creative",
+    "ad creative name",
     "utm_content"
   ],
   "placement": [
@@ -51,7 +58,8 @@
   "Day": [
     "day",
     "reporting starts",
-    "reporting ends"
+    "reporting ends",
+    "date"
   ],
   "webinar_type": [
     "webinar type",
@@ -61,7 +69,9 @@
   "phone": [
     "phone",
     "phone number",
-    "mobile"
+    "mobile",
+    "contact number",
+    "mobile number"
   ],
   "registration_fee": [
     "registration fee paid",
@@ -80,9 +90,9 @@
     "total",
     "price",
     "amount received",
-    "amount received (sub)",
-    "mango price(sub)",
-    "mango price"
+    "revenue",
+    "mango price",
+    "mango price(sub)"
   ],
   "registration_amount": [
     "registration amount",
@@ -99,6 +109,28 @@
   "payment_status": [
     "payment status",
     "status",
-    "order status"
+    "order status",
+    "transaction status"
+  ],
+  "name": [
+    "name",
+    "customer name",
+    "first name",
+    "first_name",
+    "full name",
+    "lead name",
+    "buyer name",
+    "subscriber name",
+    "mango name"
+  ],
+  "lead_status": [
+    "lead status",
+    "status",
+    "lead state"
+  ],
+  "source": [
+    "source",
+    "lead source",
+    "utm_source"
   ]
 }

@@ -195,10 +195,15 @@ def run_verification(
 
     
     # Check: Attribution Disconnect (If we have attributed sales AND meta spend, we expect >0 attributed spend)
-    has_attr_sales = metrics.get('attributed_sales', 0) > 0
-    has_meta_spend = metrics.get('raw_meta_spend', 0) > 0
-    attr_spend = metrics.get('attributed_spend', 0)
-    
+    if metrics:
+        has_attr_sales = metrics.get('attributed_sales', 0) > 0
+        has_meta_spend = metrics.get('raw_meta_spend', 0) > 0
+        attr_spend = metrics.get('attributed_spend', 0)
+    else:
+        has_attr_sales = False
+        has_meta_spend = False
+        attr_spend = 0
+        
     if has_attr_sales and has_meta_spend and attr_spend == 0:
         results.append({
             'Check Name': '14. Spend Attribution Disconnect',
@@ -212,9 +217,38 @@ def run_verification(
             'Check Name': '14. Spend Attribution Disconnect',
             'Status': 'PASS',
             'Expected': '> 0' if (has_attr_sales and has_meta_spend) else 'N/A',
-            'Actual': round(attr_spend, 2),
+            'Actual': round(attr_spend, 2) if metrics else 0.00,
             'Difference': 0
         })
 
-    return pd.DataFrame(results)
+
+        # Check: Attribution Disconnect (If we have attributed sales AND meta spend, we expect >0 attributed spend)
+        if metrics:
+            has_attr_sales = metrics.get('attributed_sales', 0) > 0
+            has_meta_spend = metrics.get('raw_meta_spend', 0) > 0
+            attr_spend = metrics.get('attributed_spend', 0)
+        else:
+            has_attr_sales = False
+            has_meta_spend = False
+            attr_spend = 0
+            
+        if has_attr_sales and has_meta_spend and attr_spend == 0:
+            results.append({
+                'Check Name': '14. Spend Attribution Disconnect',
+                'Status': 'FAIL',
+                'Expected': '> 0',
+                'Actual': '0.00',
+                'Difference': 'Campaign Mismatch'
+            })
+        else:
+            results.append({
+                'Check Name': '14. Spend Attribution Disconnect',
+                'Status': 'PASS',
+                'Expected': '> 0' if (has_attr_sales and has_meta_spend) else 'N/A',
+                'Actual': round(attr_spend, 2) if metrics else 0.00,
+                'Difference': 0
+            })
+            
+        return pd.DataFrame(results)
+
 
