@@ -193,4 +193,28 @@ def run_verification(
         profit_inv_diff = abs((safe_float(metrics.get('attributed_revenue')) - safe_float(metrics.get('raw_meta_spend'))) - safe_float(metrics.get('profit')))
         add_check('INV. Profit Formula', 0.0, round(profit_inv_diff, 4), round(profit_inv_diff, 4), 'Attributed Revenue - Raw Meta Spend = Profit', 'PASS' if profit_inv_diff < 0.1 else 'FAIL')
 
+    
+    # Check: Attribution Disconnect (If we have attributed sales AND meta spend, we expect >0 attributed spend)
+    has_attr_sales = metrics.get('attributed_sales', 0) > 0
+    has_meta_spend = metrics.get('raw_meta_spend', 0) > 0
+    attr_spend = metrics.get('attributed_spend', 0)
+    
+    if has_attr_sales and has_meta_spend and attr_spend == 0:
+        results.append({
+            'Check Name': '14. Spend Attribution Disconnect',
+            'Status': 'FAIL',
+            'Expected': '> 0',
+            'Actual': '0.00',
+            'Difference': 'Campaign Mismatch'
+        })
+    else:
+        results.append({
+            'Check Name': '14. Spend Attribution Disconnect',
+            'Status': 'PASS',
+            'Expected': '> 0' if (has_attr_sales and has_meta_spend) else 'N/A',
+            'Actual': round(attr_spend, 2),
+            'Difference': 0
+        })
+
     return pd.DataFrame(results)
+
