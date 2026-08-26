@@ -2,6 +2,7 @@ import pandas as pd
 import json
 import logging
 from typing import Dict, List, Tuple
+import difflib
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -47,6 +48,34 @@ def check_missing_columns(df: pd.DataFrame, required_columns: List[str]) -> List
         if col not in df.columns:
             missing.append(col)
     return missing
+
+def suggest_mapping(canonical_field: str, available_columns: List[str], aliases: Dict[str, List[str]]) -> str:
+    """Suggest the best matching original column for a canonical field."""
+    # Exact match
+    for col in available_columns:
+        if col.lower().strip() == canonical_field.lower().strip():
+            return col
+    
+    # Alias match
+    if canonical_field in aliases:
+        for alias in aliases[canonical_field]:
+            for col in available_columns:
+                if col.lower().strip() == alias.lower().strip():
+                    return col
+                    
+    # Fuzzy match
+    all_targets = [canonical_field]
+    if canonical_field in aliases:
+        all_targets.extend(aliases[canonical_field])
+        
+    for target in all_targets:
+        matches = difflib.get_close_matches(target.lower(), [c.lower() for c in available_columns], n=1, cutoff=0.8)
+        if matches:
+            for col in available_columns:
+                if col.lower() == matches[0]:
+                    return col
+                    
+    return "-- Ignore/Missing --"
 
 def inspect_file(filename: str, df: pd.DataFrame, required_columns: List[str] = None):
     """Log file inspection details."""
