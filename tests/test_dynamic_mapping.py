@@ -6,21 +6,34 @@ from src.inspection import suggest_mapping, load_aliases
 def test_suggest_mapping():
     aliases = load_aliases()
     
-    # Dataset A
-    cols_a = ['Campaign', 'Ad Set', 'Ad Name', 'Email', 'Phone']
-    assert suggest_mapping('email', cols_a, aliases) == 'Email'
-    assert suggest_mapping('campaign', cols_a, aliases) == 'Campaign'
-    assert suggest_mapping('phone', cols_a, aliases) == 'Phone'
+    # Test A - Exact Match
+    cols_a = ['email', 'phone', 'campaign', 'created_at']
+    assert suggest_mapping('email', cols_a, aliases) == 'email'
+    assert suggest_mapping('phone', cols_a, aliases) == 'phone'
+    assert suggest_mapping('campaign', cols_a, aliases) == 'campaign'
+    assert suggest_mapping('registration_date', cols_a, aliases) == 'created_at'
     
-    # Dataset B
-    cols_b = ['Campaign Name', 'Adset Name', 'Creative Name', 'Email Address', 'Mobile Number']
-    assert suggest_mapping('email', cols_b, aliases) == 'Email Address'
+    # Test B - Common Alternative Names
+    cols_b = ['Customer Email', 'Mobile Number', 'Campaign Name', 'Registration Date']
+    assert suggest_mapping('email', cols_b, aliases) == 'Customer Email'
+    assert suggest_mapping('phone', cols_b, aliases) == 'Mobile Number'
     assert suggest_mapping('campaign', cols_b, aliases) == 'Campaign Name'
+    assert suggest_mapping('registration_date', cols_b, aliases) == 'Registration Date'
     
-    # Dataset C
-    cols_c = ['campaign_name', 'ad_set_name', 'ad_creative', 'email_address', 'phone_number']
-    assert suggest_mapping('email', cols_c, aliases) == 'email_address'
-    assert suggest_mapping('phone', cols_c, aliases) == 'phone_number'
+    # Test C - No Match (Should NOT randomly map)
+    cols_c = ['Customer Name', 'City', 'Age', 'Gender']
+    assert suggest_mapping('email', cols_c, aliases) == '-- Ignore/Missing --'
+    assert suggest_mapping('phone', cols_c, aliases) == '-- Ignore/Missing --'
+    assert suggest_mapping('campaign', cols_c, aliases) == '-- Ignore/Missing --'
+    
+    # Test E - Different Client (Mapping must not leak, meaning it strictly follows the new client's headers)
+    cols_client_a = ['Customer Email', 'Mobile Number', 'Campaign Name']
+    cols_client_b = ['Buyer Email', 'Contact', 'Campaign Source']
+    assert suggest_mapping('email', cols_client_a, aliases) == 'Customer Email'
+    assert suggest_mapping('email', cols_client_b, aliases) == 'Buyer Email'
+    
+    # Test D - Manual Override is conceptually verified if pipeline respects renaming 
+    # (which is already tested in test_pipeline_with_different_schemas)
 
 def build_leads_a():
     return pd.DataFrame({

@@ -49,27 +49,72 @@ def check_missing_columns(df: pd.DataFrame, required_columns: List[str]) -> List
             missing.append(col)
     return missing
 
+import re
+
+def normalize_text(text: str) -> str:
+    """Normalize text by lowercasing and removing non-alphanumeric characters."""
+    text = str(text).lower()
+    return re.sub(r'[^a-z0-9]', '', text)
+
 def suggest_mapping(canonical_field: str, available_columns: List[str], aliases: Dict[str, List[str]]) -> str:
     """Suggest the best matching original column for a canonical field."""
-    # Exact match
+    # 1. Exact match
     for col in available_columns:
         if col.lower().strip() == canonical_field.lower().strip():
             return col
     
-    # Alias match
+    # 2. Alias match
     if canonical_field in aliases:
         for alias in aliases[canonical_field]:
             for col in available_columns:
                 if col.lower().strip() == alias.lower().strip():
                     return col
                     
-    # Fuzzy match
+    # 3. Normalized match
+    norm_canonical = normalize_text(canonical_field)
+    for col in available_columns:
+        if normalize_text(col) == norm_canonical:
+            return col
+            
+    if canonical_field in aliases:
+        for alias in aliases[canonical_field]:
+            norm_alias = normalize_text(alias)
+            for col in available_columns:
+                if normalize_text(col) == norm_alias:
+                    return col
+
+    # 4. Partial substring matching (high confidence heuristics)
+    for col in available_columns:
+        lower_col = col.lower()
+        if canonical_field == 'email' and 'email' in lower_col:
+            return col
+        elif canonical_field == 'phone' and ('phone' in lower_col or 'mobile' in lower_col or 'contact' in lower_col):
+            return col
+        elif canonical_field == 'registration_date' and (
+            ('registration' in lower_col and ('date' in lower_col or 'time' in lower_col)) or 
+            ('created' in lower_col and 'at' in lower_col)
+        ):
+            return col
+        elif canonical_field == 'campaign' and 'campaign' in lower_col and 'source' not in lower_col and 'medium' not in lower_col:
+            return col
+        elif canonical_field == 'ad_set' and ('adset' in lower_col or 'ad set' in lower_col):
+            return col
+        elif canonical_field == 'ad_creative' and ('creative' in lower_col or 'ad name' in lower_col):
+            return col
+        elif canonical_field == 'spend' and ('spend' in lower_col or 'spent' in lower_col):
+            return col
+        elif canonical_field == 'sale_date' and ('sale' in lower_col or 'order' in lower_col or 'purchase' in lower_col) and 'date' in lower_col:
+            return col
+        elif canonical_field == 'Day' and ('date' in lower_col or 'day' in lower_col):
+            return col
+
+    # 5. Fuzzy match with HIGH confidence only
     all_targets = [canonical_field]
     if canonical_field in aliases:
         all_targets.extend(aliases[canonical_field])
         
     for target in all_targets:
-        matches = difflib.get_close_matches(target.lower(), [c.lower() for c in available_columns], n=1, cutoff=0.8)
+        matches = difflib.get_close_matches(target.lower(), [c.lower() for c in available_columns], n=1, cutoff=0.9)
         if matches:
             for col in available_columns:
                 if col.lower() == matches[0]:
