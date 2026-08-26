@@ -24,7 +24,13 @@ def parse_date_series(series: pd.Series) -> pd.Series:
         if pd.isna(date_val):
             return pd.NaT
         text = str(date_val).strip()
-        text = re.sub(r'\s*\([^)]*\)$', '', text).strip()
+        # Remove trailing parentheses for timezones like (Indian Standard Time) or (IST)
+        # We need to make sure we don't accidentally remove actual date text if it's badly formatted,
+        # but typically timezones are at the end.
+        text = re.sub(r'\s*\([^)]+\)$', '', text).strip()
+        
+        # Sometimes there's am/pm timezone mixed, ensure we remove timezone codes if they prevent parsing
+        # but pd.to_datetime usually handles am/pm well if timezone text is gone.
         if not text or text.lower() in ('nan', 'none', 'not a date', 'null'):
             return pd.NaT
             
@@ -40,6 +46,37 @@ def parse_date_series(series: pd.Series) -> pd.Series:
         return pd.to_datetime(text, errors='coerce')
         
     return series.apply(_parse_single)
+
+def parse_date_range(series: pd.Series) -> pd.DataFrame:
+    """
+    Parses a series that may contain single dates or date ranges (e.g., 'YYYY-MM-DD - YYYY-MM-DD').
+    Returns a DataFrame with 'start_date' and 'end_date' columns.
+    If it's a single date, start_date == end_date.
+    """
+    def _parse_range_single(val):
+        if pd.isna(val):
+            return pd.Series({'start_date': pd.NaT, 'end_date': pd.NaT})
+            
+        text = str(val).strip()
+        
+        # Check for range separators like ' - ' or ' to '
+        if ' - ' in text:
+            parts = text.split(' - ', 1)
+        elif ' to ' in text.lower():
+            # case insensitive split
+            parts = re.split(r'\s+to\s+', text, flags=re.IGNORECASE, maxsplit=1)
+        else:
+            parts = [text]
+            
+        if len(parts) == 2:
+            start_series = parse_date_series(pd.Series([parts[0]]))
+            end_series = parse_date_series(pd.Series([parts[1]]))
+            return pd.Series({'start_date': start_series.iloc[0], 'end_date': end_series.iloc[0]})
+        else:
+            parsed = parse_date_series(pd.Series([parts[0]])).iloc[0]
+            return pd.Series({'start_date': parsed, 'end_date': parsed})
+            
+    return series.apply(_parse_range_single)
 
 def normalize_email(email) -> str:
     """Lowercase and trim email."""

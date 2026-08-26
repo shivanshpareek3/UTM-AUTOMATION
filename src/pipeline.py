@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple
 import os
 
 from src.inspection import load_aliases, map_columns, check_missing_columns
-from src.normalization import clean_text
+from src.normalization import clean_text, parse_date_range, parse_date_series
 from src.leads import process_leads
 from src.sales import process_sales
 from src.attribution import attribute_sales
@@ -74,8 +74,15 @@ def run_pipeline(
         m_sdt = pd.to_datetime(meta_start_str)
         m_edt = pd.to_datetime(meta_end_str)
         if 'Day' in meta_df.columns:
-            meta_df['Day'] = pd.to_datetime(meta_df['Day'], errors='coerce')
-            meta_df = meta_df[(meta_df['Day'] >= m_sdt) & (meta_df['Day'] <= m_edt)]
+            range_df = parse_date_range(meta_df['Day'])
+            
+            # Validation: if Day was populated but NO dates could be parsed, raise error
+            if meta_df['Day'].notna().any() and range_df['start_date'].isna().all():
+                raise ValueError("Could not parse any dates from Meta 'Day' column. Please verify date format.")
+                
+            # Filter condition: source_start <= requested_end AND source_end >= requested_start
+            mask = (range_df['start_date'] <= m_edt) & (range_df['end_date'] >= m_sdt)
+            meta_df = meta_df[mask]
     # Validate required columns (rudimentary check here, Streamlit can do deeper)
     # Assume mapped correctly for now
     
@@ -178,9 +185,27 @@ def run_pipeline(
     else:
         standalone_reg_rev = reg_rev_df['reg_revenue'].sum() if not reg_rev_df.empty else 0.0
     
-    # 6b. Filter Leads to Reporting Period (Golden Methodology: use all leads in file)
-    leads_in_window = leads_df.copy()
-        
+    # 6b. Filter Leads to Reporting Period
+    ls_start_str = settings.get('lead_sales_start_date', settings.get('lead_start_date'))
+    ls_end_str = settings.get('lead_sales_end_date', settings.get('lead_end_date'))
+    
+    if ls_start_str and ls_end_str:
+        sdt = pd.to_datetime(ls_start_str)
+        edt = pd.to_datetime(ls_end_str)
+        # Ensure end date includes the full day if it has no time component
+        if edt.hour == 0 and edt.minute == 0 and edt.second == 0:
+            edt = edt + pd.Timedelta(days=1, microseconds=-1)
+            
+        if 'registration_date' in leads_df.columns:
+            parsed_reg = parse_date_series(leads_df['registration_date'])
+            # We keep leads with NaT registration dates to avoid silent data loss, 
+            # but filter out leads strictly outside the window
+            mask = parsed_reg.isna() | ((parsed_reg >= sdt) & (parsed_reg <= edt))
+            leads_in_window = leads_df[mask].copy()
+        else:
+            leads_in_window = leads_df.copy()
+    else:
+        leads_in_window = leads_df.copy()
     # Generate Data Quality Warning
     def generate_warning(row):
         warnings = []
@@ -211,10 +236,16 @@ def run_pipeline(
     # 9. Verification
     total_windowed_meta_spend = 0.0
     if not meta_df.empty:
-        meta_df['Day'] = pd.to_datetime(meta_df['Day'], errors='coerce')
+        # Use overlap check rather than simple strict bound check
         sdt = pd.to_datetime(settings.get('meta_start_date', settings.get('ad_start_date')))
         edt = pd.to_datetime(settings.get('meta_end_date', settings.get('ad_end_date')))
-        window_meta = meta_df[(meta_df['Day'] >= sdt) & (meta_df['Day'] <= edt)].copy()
+        
+        if 'Day' in meta_df.columns:
+            range_df = parse_date_range(meta_df['Day'])
+            mask = (range_df['start_date'] <= edt) & (range_df['end_date'] >= sdt)
+            window_meta = meta_df[mask].copy()
+        else:
+            window_meta = meta_df.copy()
         
         # Exclude blank campaigns
         from src.normalization import unify_campaign_name

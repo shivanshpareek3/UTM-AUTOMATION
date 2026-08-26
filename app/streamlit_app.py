@@ -9,6 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.ingestion import read_file, read_stream
 from src.inspection import load_aliases, suggest_mapping
+from src.normalization import parse_date_series, parse_date_range
 from src.pipeline import run_pipeline
 
 st.set_page_config(page_title="UTM Sales Attribution Generator", layout="wide")
@@ -96,19 +97,22 @@ if leads_file and sales_file and meta_files:
     
     s_lead_date = suggest_mapping('registration_date', leads_df.columns, aliases)
     if s_lead_date != '-- Ignore/Missing --':
-        l_dates = pd.to_datetime(leads_df[s_lead_date], errors='coerce').dropna()
+        l_dates = parse_date_series(leads_df[s_lead_date]).dropna()
         if not l_dates.empty: lead_min, lead_max = l_dates.min(), l_dates.max()
             
     s_sale_date = suggest_mapping('sale_date', sales_df.columns, aliases)
     if s_sale_date != '-- Ignore/Missing --':
-        s_dates = pd.to_datetime(sales_df[s_sale_date], errors='coerce').dropna()
+        s_dates = parse_date_series(sales_df[s_sale_date]).dropna()
         if not s_dates.empty: sales_min, sales_max = s_dates.min(), s_dates.max()
             
     if not meta_df.empty:
         s_meta_date = suggest_mapping('Day', meta_df.columns, aliases)
         if s_meta_date != '-- Ignore/Missing --':
-            m_dates = pd.to_datetime(meta_df[s_meta_date], errors='coerce').dropna()
-        if not m_dates.empty: meta_min, meta_max = m_dates.min(), m_dates.max()
+            range_df = parse_date_range(meta_df[s_meta_date])
+            if not range_df['start_date'].dropna().empty:
+                meta_min = range_df['start_date'].min()
+            if not range_df['end_date'].dropna().empty:
+                meta_max = range_df['end_date'].max()
 
     st.markdown("### Detected Data Coverage")
     st.write(f"**Leads:** {lead_min.date() if pd.notna(lead_min) else 'None'} → {lead_max.date() if pd.notna(lead_max) else 'None'}")
