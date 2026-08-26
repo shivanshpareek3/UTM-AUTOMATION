@@ -30,6 +30,14 @@ def test_golden_methodology_verified(tmp_path):
     meta_df1 = read_file('/Users/apple/Downloads/FML-X-ABHISHEK-PAL-Campaigns-15-Aug-2026-21-Aug-2026.csv')
     meta_df2 = read_file('/Users/apple/Downloads/A-hishek-Pal---FML-Campaigns-15-Aug-2026-21-Aug-2026.csv')
 
+    from src.inspection import load_aliases, map_columns
+    aliases = load_aliases()
+    leads_df = map_columns(leads_df, aliases)
+    sales_df = map_columns(sales_df, aliases)
+    meta_df1 = map_columns(meta_df1, aliases)
+    meta_df2 = map_columns(meta_df2, aliases)
+
+
     out = tmp_path / "golden_report.xlsx"
     metrics, ver_df, path = run_pipeline(leads_df, sales_df, [meta_df1, meta_df2], settings, str(out))
 

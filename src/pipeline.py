@@ -36,9 +36,8 @@ def run_pipeline(
     # Initial row counts
     input_sales_count = len(sales_df)
     
-    # 1. Column Mapping
-    leads_df = map_columns(leads_df, aliases)
-    sales_df = map_columns(sales_df, aliases)
+    # 1. Column Mapping (Handled by UI)
+    # The UI now guarantees leads_df and sales_df have been renamed to canonical mapping fields.
     
     # Remove repeated header rows from merged CSVs/sheets
     if not leads_df.empty and 'email' in leads_df.columns:
@@ -57,7 +56,7 @@ def run_pipeline(
     if not meta_df.empty:
         subset_cols = [c for c in meta_df.columns if c != 'source_file_id']
         meta_df = meta_df.drop_duplicates(subset=subset_cols, ignore_index=True)
-    meta_df = map_columns(meta_df, aliases)
+    # The UI has already mapped the meta_dfs before they were concatenated here
     
     # Remove hierarchical summary rows where ad is 'all' or empty
     if not meta_df.empty and 'ad' in meta_df.columns:
