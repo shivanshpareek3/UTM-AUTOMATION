@@ -76,6 +76,12 @@ def run_pipeline(
         if 'Day' in meta_df.columns:
             range_df = parse_date_range(meta_df['Day'])
             
+            # If the user mapped 'Reporting starts' to 'Day', we need to check for 'Reporting ends'
+            end_cols = [c for c in meta_df.columns if str(c).lower().strip() == 'reporting ends']
+            if end_cols:
+                end_range = parse_date_range(meta_df[end_cols[0]])
+                range_df['end_date'] = end_range['end_date'].fillna(range_df['end_date'])
+            
             # Validation: if Day was populated but NO dates could be parsed, raise error
             if meta_df['Day'].notna().any() and range_df['start_date'].isna().all():
                 raise ValueError("Could not parse any dates from Meta 'Day' column. Please verify date format.")
@@ -102,12 +108,18 @@ def run_pipeline(
             temp_leads = temp_leads.drop_duplicates(subset=['email'])
             
             # Use registration_date if sale_date is missing
-            sales_df = sales_df.merge(temp_leads[['email', 'registration_date']], on='email', how='left')
+            if 'registration_date' in temp_leads.columns:
+                sales_df = sales_df.merge(temp_leads[['email', 'registration_date']], on='email', how='left')
+            else:
+                sales_df['registration_date'] = pd.NaT
+                
             if 'sale_date' not in sales_df.columns:
                 sales_df['sale_date'] = sales_df['registration_date']
-            else:
+            elif 'registration_date' in sales_df.columns:
                 sales_df['sale_date'] = sales_df['sale_date'].fillna(sales_df['registration_date'])
-            sales_df.drop(columns=['registration_date'], inplace=True)
+                
+            if 'registration_date' in sales_df.columns:
+                sales_df.drop(columns=['registration_date'], inplace=True)
             
             if 'sale_date_source' not in sales_df.columns:
                 sales_df['sale_date_source'] = sales_df['sale_date'].apply(

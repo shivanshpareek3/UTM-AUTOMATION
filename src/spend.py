@@ -28,13 +28,8 @@ def allocate_spend(sales_df: pd.DataFrame, meta_df: pd.DataFrame, leads_df: pd.D
     if meta_df.empty:
         return sales_df, pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
         
-    # Ensure dates are datetime
-    meta_df['Day'] = pd.to_datetime(meta_df.get('Reporting starts', meta_df.get('Day', pd.Series(dtype=str))), errors='coerce')
-    start_dt = pd.to_datetime(start_date)
-    end_dt = pd.to_datetime(end_date)
-    
-    # Filter by window
-    window_meta = meta_df[(meta_df['Day'] >= start_dt) & (meta_df['Day'] <= end_dt)].copy()
+    # Dates are already filtered by pipeline.py using robust range parsing
+    window_meta = meta_df.copy()
     
     # Normalize Meta names for joining
     if 'Amount spent (INR)' in window_meta.columns:
