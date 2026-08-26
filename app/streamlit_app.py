@@ -229,11 +229,31 @@ if leads_file and sales_file and meta_files:
 
     # --- END DATE RANGE DETECTION ---
 
+    
     # --- NOW DO INSPECTION UI (SECTION 3) ---
     st.header("3. Input Inspection & Column Mapping")
     
     st.write(f"**Leads:** {len(leads_df)} rows | **Sales:** {len(sales_df)} rows | **Meta Accounts:** {len(meta_dfs)} files")
     
+    # ---------------------------------------------------------
+    # STATE MANAGEMENT FOR FILE CHANGES
+    # ---------------------------------------------------------
+    current_file_ids = (
+        getattr(leads_file, "file_id", "none"),
+        getattr(sales_file, "file_id", "none"),
+        tuple(getattr(m, "file_id", "none") for m in meta_files) if meta_files else ()
+    )
+    
+    if "last_file_ids" not in st.session_state or st.session_state.last_file_ids != current_file_ids:
+        # Clear mapping state
+        keys_to_delete = [k for k in st.session_state.keys() if k.startswith("map_")]
+        for k in keys_to_delete:
+            del st.session_state[k]
+        st.session_state.last_file_ids = current_file_ids
+
+    # ---------------------------------------------------------
+    # MAPPING UI
+    # ---------------------------------------------------------
     strict_leads = ['email', 'registration_date', 'campaign', 'ad_set', 'ad_creative']
     opt_leads = ['webinar_type', 'registration_fee']
     strict_sales = ['email']
@@ -241,60 +261,68 @@ if leads_file and sales_file and meta_files:
     strict_meta = ['campaign', 'spend', 'Day']
     opt_meta = ['ad_set', 'ad']
     
-    missing_leads = strict_leads + opt_leads
-    missing_sales = strict_sales + opt_sales
-    missing_meta = strict_meta + opt_meta
+    mapping_dict = {'leads': {}, 'sales': {}, 'meta': []} # meta is a list of dicts now
     
-    needs_mapping = missing_leads or missing_sales or missing_meta
-    
-    mapping_dict = {'leads': {}, 'sales': {}, 'meta': {}}
-    
-    def render_mapping(missing_cols, strict_cols, df, title, map_key):
-        if not missing_cols: return
-        st.subheader(title)
+    def render_mapping_section(req_cols, df, section_title, prefix):
+        st.markdown(f"### {section_title}")
+        st.markdown(f"*(All columns from the uploaded file are available in the dropdowns)*")
         
-        # Keep track of assigned source columns to prevent duplicate mapping
+        mapping = {}
         assigned_sources = set()
         
-        for req_col in missing_cols:
-            is_strict = req_col in strict_cols
+        orig_cols = list(df.columns)
+        
+        for req_col, is_strict in req_cols:
             req_label = "*(Required)*" if is_strict else "*(Optional)*"
             
             opts = ['-- Ignore/Missing --']
-            # Only use exact dataframe columns
-            orig_cols = list(df.columns)
-            
             for c in orig_cols:
-                sample_val = str(df[c].dropna().iloc[0])[:30] + '...' if not df[c].dropna().empty else 'empty'
-                opts.append(f"{c} (e.g. {sample_val})")
+                opts.append(c)
                 
             suggested_orig = suggest_mapping(req_col, orig_cols, aliases)
             
-            # Prevent duplicate auto-mapping
+            # Suggestion shouldn't duplicate
             if suggested_orig in assigned_sources:
                 suggested_orig = '-- Ignore/Missing --'
                 
             if suggested_orig != '-- Ignore/Missing --':
-                # find index of suggested
-                idx = [i for i, opt in enumerate(opts) if opt.startswith(suggested_orig + " (e.g.")] 
+                idx = [i for i, opt in enumerate(opts) if opt == suggested_orig] 
                 def_idx = idx[0] if idx else 0
                 if idx: assigned_sources.add(suggested_orig)
             else:
                 def_idx = 0
                 
-            sel = st.selectbox(f"Select column for '{req_col}' {req_label}", options=opts, index=def_idx, key=f"{title}_{req_col}")
+            state_key = f"map_{prefix}_{req_col}"
+            # If user hasn't mapped yet, we use the suggestion as the initial value by updating session state conditionally
+            # Wait, Streamlit's selectbox takes `index`. We can just pass `index`.
+            
+            sel = st.selectbox(f"Select column for '{req_col}' {req_label}", options=opts, index=def_idx, key=state_key)
             
             if sel != '-- Ignore/Missing --':
-                # Map canonical -> actual header
-                actual_col = sel.split(" (e.g.")[0]
-                mapping_dict[map_key][req_col] = actual_col
-                assigned_sources.add(actual_col)
-                        
-    st.info("Please review the dynamic column mappings extracted directly from your uploaded files:")
-    with st.expander("Column Mapping (Review & Adjust)", expanded=True):
-        render_mapping(missing_leads, strict_leads, leads_df, "Leads File Mapping", 'leads')
-        render_mapping(missing_sales, strict_sales, sales_df, "Sales File Mapping", 'sales')
-        render_mapping(missing_meta, strict_meta, meta_df, "Meta Spend File Mapping", 'meta')
+                mapping[req_col] = sel
+                assigned_sources.add(sel)
+                
+        return mapping
+
+    with st.container():
+        # Leads
+        l_reqs = [(c, True) for c in strict_leads] + [(c, False) for c in opt_leads]
+        mapping_dict['leads'] = render_mapping_section(l_reqs, leads_df, f"SECTION A — LEADS FILE MAPPING ({leads_file.name})", "leads")
+        st.divider()
+        
+        # Sales
+        s_reqs = [(c, True) for c in strict_sales] + [(c, False) for c in opt_sales]
+        mapping_dict['sales'] = render_mapping_section(s_reqs, sales_df, f"SECTION B — SALES FILE MAPPING ({sales_file.name})", "sales")
+        st.divider()
+        
+        # Meta
+        m_reqs = [(c, True) for c in strict_meta] + [(c, False) for c in opt_meta]
+        if meta_files:
+            for i, (m_file, m_df) in enumerate(zip(meta_files, meta_dfs)):
+                m_map = render_mapping_section(m_reqs, m_df, f"SECTION C — META SPEND FILE {i+1} MAPPING ({m_file.name})", f"meta_{i}")
+                mapping_dict['meta'].append(m_map)
+                if i < len(meta_files) - 1:
+                    st.markdown("---")
         
     # 1. Validation (Check if required canonical fields are mapped)
     still_missing_strict = []
@@ -302,28 +330,33 @@ if leads_file and sales_file and meta_files:
         if c not in mapping_dict['leads']: still_missing_strict.append(f"Leads: {c}")
     for c in strict_sales:
         if c not in mapping_dict['sales']: still_missing_strict.append(f"Sales: {c}")
-    for c in strict_meta:
-        if c not in mapping_dict['meta']: still_missing_strict.append(f"Meta: {c}")
+        
+    for i, m_map in enumerate(mapping_dict['meta']):
+        for c in strict_meta:
+            if c not in m_map: still_missing_strict.append(f"Meta File {i+1}: {c}")
 
     # 2. Invert the dicts (actual -> canonical) to apply renaming to dataframes
     inv_leads = {v: k for k, v in mapping_dict['leads'].items()}
     inv_sales = {v: k for k, v in mapping_dict['sales'].items()}
-    inv_meta = {v: k for k, v in mapping_dict['meta'].items()}
     
     # 3. Rename columns
     leads_df.rename(columns=inv_leads, inplace=True)
     sales_df.rename(columns=inv_sales, inplace=True)
-    meta_df.rename(columns=inv_meta, inplace=True)
+    
+    # Process multiple meta files with their distinct mappings BEFORE concat
     if meta_dfs:
         for i in range(len(meta_dfs)):
+            inv_meta = {v: k for k, v in mapping_dict['meta'][i].items()}
             meta_dfs[i].rename(columns=inv_meta, inplace=True)
             
+    # Combine meta dataframes into one for inspection checks if necessary, or pipeline handles list
+    meta_df = pd.concat(meta_dfs, ignore_index=True) if len(meta_dfs) > 1 else meta_dfs[0]
+
     # 4. Default unmapped optional fields safely
     for req_col in opt_leads:
         if req_col not in mapping_dict['leads']:
             if req_col == 'webinar_type': leads_df[req_col] = 'unknown'
             elif req_col == 'registration_fee': leads_df[req_col] = 0.0
-
     st.header("4. Sales Data Resolution")
     st.write("Configure how to handle missing or ambiguous sales data. *Using non-actual sources will explicitly label the data as assumed.*")
     
