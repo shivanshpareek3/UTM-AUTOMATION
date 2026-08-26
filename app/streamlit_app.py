@@ -257,6 +257,7 @@ if leads_file and sales_file and meta_files:
             req_label = "*(Required)*" if is_strict else "*(Optional)*"
             
             opts = ['-- Ignore/Missing --']
+            # Only use exact dataframe columns
             orig_cols = list(df.columns)
             
             for c in orig_cols:
@@ -280,11 +281,9 @@ if leads_file and sales_file and meta_files:
             sel = st.selectbox(f"Select column for '{req_col}' {req_label}", options=opts, index=def_idx, key=f"{title}_{req_col}")
             
             if sel != '-- Ignore/Missing --':
+                # Map canonical -> actual header
                 actual_col = sel.split(" (e.g.")[0]
-                mapping_dict[map_key][actual_col] = req_col
-                
-                # If manually selected, ensure we track it so we don't accidentally auto-map it later
-                # (Streamlit reruns top-down so user selections persist)
+                mapping_dict[map_key][req_col] = actual_col
                 assigned_sources.add(actual_col)
                         
     st.info("Please review the dynamic column mappings extracted directly from your uploaded files:")
@@ -293,27 +292,33 @@ if leads_file and sales_file and meta_files:
         render_mapping(missing_sales, strict_sales, sales_df, "Sales File Mapping", 'sales')
         render_mapping(missing_meta, strict_meta, meta_df, "Meta Spend File Mapping", 'meta')
         
-    # Apply mappings
-    leads_df.rename(columns=mapping_dict['leads'], inplace=True)
-    sales_df.rename(columns=mapping_dict['sales'], inplace=True)
-    meta_df.rename(columns=mapping_dict['meta'], inplace=True)
-    if meta_dfs:
-        for i in range(len(meta_dfs)):
-            meta_dfs[i].rename(columns=mapping_dict['meta'], inplace=True)
-            
-    # Default unmapped optional fields safely
-    for req_col in opt_leads:
-        if req_col not in leads_df.columns:
-            if req_col == 'webinar_type': leads_df[req_col] = 'unknown'
-            elif req_col == 'registration_fee': leads_df[req_col] = 0.0
-        
+    # 1. Validation (Check if required canonical fields are mapped)
     still_missing_strict = []
     for c in strict_leads:
-        if c not in leads_df.columns: still_missing_strict.append(f"Leads: {c}")
+        if c not in mapping_dict['leads']: still_missing_strict.append(f"Leads: {c}")
     for c in strict_sales:
-        if c not in sales_df.columns: still_missing_strict.append(f"Sales: {c}")
+        if c not in mapping_dict['sales']: still_missing_strict.append(f"Sales: {c}")
     for c in strict_meta:
-        if c not in meta_df.columns: still_missing_strict.append(f"Meta: {c}")
+        if c not in mapping_dict['meta']: still_missing_strict.append(f"Meta: {c}")
+
+    # 2. Invert the dicts (actual -> canonical) to apply renaming to dataframes
+    inv_leads = {v: k for k, v in mapping_dict['leads'].items()}
+    inv_sales = {v: k for k, v in mapping_dict['sales'].items()}
+    inv_meta = {v: k for k, v in mapping_dict['meta'].items()}
+    
+    # 3. Rename columns
+    leads_df.rename(columns=inv_leads, inplace=True)
+    sales_df.rename(columns=inv_sales, inplace=True)
+    meta_df.rename(columns=inv_meta, inplace=True)
+    if meta_dfs:
+        for i in range(len(meta_dfs)):
+            meta_dfs[i].rename(columns=inv_meta, inplace=True)
+            
+    # 4. Default unmapped optional fields safely
+    for req_col in opt_leads:
+        if req_col not in mapping_dict['leads']:
+            if req_col == 'webinar_type': leads_df[req_col] = 'unknown'
+            elif req_col == 'registration_fee': leads_df[req_col] = 0.0
 
     st.header("4. Sales Data Resolution")
     st.write("Configure how to handle missing or ambiguous sales data. *Using non-actual sources will explicitly label the data as assumed.*")
