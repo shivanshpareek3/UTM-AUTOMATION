@@ -254,6 +254,13 @@ def run_pipeline(
         
         if 'Day' in meta_df.columns:
             range_df = parse_date_range(meta_df['Day'])
+            
+            # Check for 'Reporting ends' to fill end_date, matching line 91 logic
+            end_cols = [c for c in meta_df.columns if str(c).lower().strip() == 'reporting ends']
+            if end_cols:
+                end_range = parse_date_range(meta_df[end_cols[0]])
+                range_df['end_date'] = end_range['end_date'].fillna(range_df['end_date'])
+                
             mask = (range_df['start_date'] <= edt) & (range_df['end_date'] >= sdt)
             window_meta = meta_df[mask].copy()
         else:
@@ -265,6 +272,8 @@ def run_pipeline(
             window_meta['camp_norm'] = window_meta['campaign'].apply(unify_campaign_name)
         elif 'Campaign Name' in window_meta.columns:
             window_meta['camp_norm'] = window_meta['Campaign Name'].apply(unify_campaign_name)
+        elif 'Campaign name' in window_meta.columns:
+            window_meta['camp_norm'] = window_meta['Campaign name'].apply(unify_campaign_name)
         else:
             window_meta['camp_norm'] = "unmapped"
             

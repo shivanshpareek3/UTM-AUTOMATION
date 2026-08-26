@@ -17,6 +17,8 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
             meta_df_copy['camp_norm'] = meta_df_copy['campaign'].apply(unify_campaign_name)
         elif 'Campaign Name' in meta_df_copy.columns:
             meta_df_copy['camp_norm'] = meta_df_copy['Campaign Name'].apply(unify_campaign_name)
+        elif 'Campaign name' in meta_df_copy.columns:
+            meta_df_copy['camp_norm'] = meta_df_copy['Campaign name'].apply(unify_campaign_name)
         else:
             meta_df_copy['camp_norm'] = "unmapped"
             
