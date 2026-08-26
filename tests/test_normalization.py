@@ -16,5 +16,8 @@ def test_normalize_phone():
     assert normalize_phone("919876543210") == "9876543210"
 
 def test_unify_campaign_name():
-    assert unify_campaign_name("Webinar Campaign") == "webinar campaign"
-    assert unify_campaign_name("webinar  campaign") == "webinar campaign"
+    assert unify_campaign_name("Webinar Campaign") == "webinarcampaign"
+    assert unify_campaign_name("WEBINAR CAMPAIGN") == "webinarcampaign"
+    assert unify_campaign_name("ForemostLeads-GS-13-09-V1 <foo>") == "foremostleadsgs1309v1foo"
+    assert unify_campaign_name("foremostleads-gs-13-09") == "foremostleadsgs1309"
+    assert unify_campaign_name(None) == ""

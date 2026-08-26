@@ -116,19 +116,21 @@ def normalize_phone(phone) -> str:
     return digits
 
 def unify_campaign_name(campaign) -> str:
-    """Case-insensitive matching for campaign, with targeted normalizations."""
+    """Universally robust case-insensitive matching for campaign.
+    Strips all punctuation and spaces to guarantee matching between 
+    Meta native names and URL-encoded UTM parameters.
+    """
     if pd.isna(campaign):
         return ""
-    text = clean_text(campaign).lower()
     
-    # Standardize URL encodings that may appear differently
     import urllib.parse
-    text = urllib.parse.unquote(text)
+    import re
     
-    # Targeted safe, dynamic normalization for the proven campaign family:
-    if "foremostleads-gs-13-09" in text:
-        # Dynamically strip <...> variations within this specific proven family
-        import re
-        text = re.sub(r'<[^>]+>', '', text).strip()
-        
+    # 1. Lowercase
+    text = str(campaign).lower()
+    # 2. Decode URL entities (e.g. %20 -> space)
+    text = urllib.parse.unquote(text)
+    # 3. Strip all non-alphanumeric characters (spaces, <>, -, _, etc.)
+    text = re.sub(r'[^a-z0-9]', '', text)
+    
     return text
