@@ -75,7 +75,7 @@ def run():
         for col in [c for c in meta_mapped.columns if 'spend' in c.lower()]:
             print(f"Sum of {col}: {meta_mapped[col].sum()}")
 
-    # 3. LEAD DATE FILTER VERIFICATION
+    # 3. LEAD DATE FILTER VERIFICATION  
     print("\n==================================================")
     print("3. LEAD DATE FILTER VERIFICATION")
     print("==================================================")

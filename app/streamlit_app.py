@@ -229,7 +229,7 @@ if leads_file and sales_file and meta_files:
     
     if meta_dfs:
         for i in range(len(meta_dfs)):
-            inv_meta = {v: ('Day' if k == 'Date' else k) for v, k in mapping_dict['meta'][i].items()}
+            inv_meta = {v: ('Day' if k == 'Date' else k) for k, v in mapping_dict['meta'][i].items()}
             meta_dfs[i].rename(columns=inv_meta, inplace=True)
             
     meta_df = pd.concat(meta_dfs, ignore_index=True) if len(meta_dfs) > 1 else meta_dfs[0]

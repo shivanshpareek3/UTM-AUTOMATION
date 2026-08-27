@@ -48,12 +48,12 @@ def run_pipeline(
     
     if meta_dfs:
         for i, df in enumerate(meta_dfs):
-            if 'spend' not in df.columns:
+            if not df.empty and 'spend' not in df.columns:
                 raise KeyError(f"'spend' column is MISSING from meta_dfs[{i}] before concatenation. Available columns: {list(df.columns)}")
         for i, df in enumerate(meta_dfs):
             df['source_file_id'] = i
         meta_df = pd.concat(meta_dfs, ignore_index=True)
-        if 'spend' not in meta_df.columns:
+        if not meta_df.empty and 'spend' not in meta_df.columns:
             raise KeyError(f"'spend' column is MISSING from meta_df after concatenation. Available columns: {list(meta_df.columns)}")
     else:
         meta_df = pd.DataFrame()
