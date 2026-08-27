@@ -151,11 +151,6 @@ if leads_file and sales_file and meta_files:
             st.markdown("#### Current Mappings")
             for req_col, is_strict in req_cols:
                 mapped_col = st.session_state.get(f"map_{prefix}_{req_col}")
-                # Ensure the mapped column actually exists in the current dataframe
-                if mapped_col and mapped_col not in df.columns:
-                    del st.session_state[f"map_{prefix}_{req_col}"]
-                    mapped_col = None
-                    
                 if mapped_col:
                     mapping[req_col] = mapped_col
                     col_a, col_b = st.columns([3, 1])

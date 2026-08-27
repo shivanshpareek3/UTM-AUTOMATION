@@ -1,0 +1,16 @@
+--- src/pipeline.py
++++ src/pipeline.py
+@@ -47,6 +47,15 @@
+     
+     # --- 1. Concatenate Meta files early so we can filter by date before everything else
+     if meta_dfs:
++        for i, df in enumerate(meta_dfs):
++            if 'spend' not in df.columns:
++                raise ValueError(f"CRITICAL ERROR: 'spend' column is MISSING from meta_dfs[{i}] before concatenation. Columns are: {list(df.columns)}")
+         for i, df in enumerate(meta_dfs):
+             df['source_file_id'] = i
+         meta_df = pd.concat(meta_dfs, ignore_index=True)
++        if 'spend' not in meta_df.columns:
++            raise ValueError(f"CRITICAL ERROR: 'spend' column is MISSING from concatenated meta_df. Columns are: {list(meta_df.columns)}")
+     else:
+         meta_df = pd.DataFrame()

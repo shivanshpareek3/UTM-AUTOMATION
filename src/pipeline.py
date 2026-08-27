@@ -48,8 +48,13 @@ def run_pipeline(
     
     if meta_dfs:
         for i, df in enumerate(meta_dfs):
+            if 'spend' not in df.columns:
+                raise KeyError(f"'spend' column is MISSING from meta_dfs[{i}] before concatenation. Available columns: {list(df.columns)}")
+        for i, df in enumerate(meta_dfs):
             df['source_file_id'] = i
         meta_df = pd.concat(meta_dfs, ignore_index=True)
+        if 'spend' not in meta_df.columns:
+            raise KeyError(f"'spend' column is MISSING from meta_df after concatenation. Available columns: {list(meta_df.columns)}")
     else:
         meta_df = pd.DataFrame()
         
@@ -180,6 +185,10 @@ def run_pipeline(
     # 5. Spend Attribution
     meta_start = settings.get('meta_start_date', settings.get('ad_start_date'))
     meta_end = settings.get('meta_end_date', settings.get('ad_end_date'))
+    
+    if not meta_df.empty and 'spend' not in meta_df.columns:
+        raise KeyError(f"'spend' is MISSING before allocate_spend. Columns: {list(meta_df.columns)}")
+        
     sales_df, camp_spend, adset_spend, ad_spend, placement_spend = allocate_spend(
         sales_df, meta_df, leads_df, meta_start, meta_end
     )
