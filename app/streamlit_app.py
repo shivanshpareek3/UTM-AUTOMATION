@@ -19,13 +19,28 @@ st.title("🚀 UTM Sales Attribution & Profitability Report Generator")
 if 'reset' not in st.session_state:
     st.session_state.reset = False
 
+# Session state init for prices to maintain state across type changes
+if 'fallback_price' not in st.session_state:
+    st.session_state.fallback_price = 8999.0
+if 'paid_funnel_price' not in st.session_state:
+    st.session_state.paid_funnel_price = 8999.0
+
 # Sidebar settings
 st.sidebar.header("⚙ Settings")
 client_name = st.sidebar.text_input("Client / Report Name", "Antigravity Default")
 
 cutoff_date = st.sidebar.date_input("New vs Old Lead Cutoff Date", pd.to_datetime("2024-01-01"))
 funnel_type = st.sidebar.radio("Funnel Type", ["Paid", "Free"])
-fallback_price = st.sidebar.number_input("Fallback Price Per Sale (if Paid)", value=8999.0) if funnel_type == "Paid" else 0.0
+
+if funnel_type == "Paid":
+    paid_funnel_price = st.sidebar.number_input("Paid Funnel Price Per Sale", value=st.session_state.paid_funnel_price)
+    st.session_state.paid_funnel_price = paid_funnel_price
+else:
+    paid_funnel_price = st.session_state.paid_funnel_price
+
+fallback_price = st.sidebar.number_input("Fallback Price Per Sale", value=st.session_state.fallback_price)
+st.session_state.fallback_price = fallback_price
+
 zero_roi_threshold = st.sidebar.number_input("Zero-ROI Waste Threshold", value=5000.0)
 currency = st.sidebar.text_input("Currency", "INR")
 
@@ -35,6 +50,7 @@ settings = {
     'cutoff_date': str(cutoff_date),
     'funnel_type': funnel_type,
     'fallback_price': float(fallback_price),
+    'paid_funnel_price': float(paid_funnel_price),
     'zero_roi_threshold': float(zero_roi_threshold),
     'currency': currency,
     # These will be updated in the main flow
