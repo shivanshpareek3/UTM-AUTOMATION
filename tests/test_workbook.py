@@ -7,7 +7,7 @@ from src.verification import run_verification
 def test_generate_workbook(tmp_path):
     settings_df = pd.DataFrame({'Key': ['Report Name'], 'Value': ['Test']})
     sales_df = pd.DataFrame({'sale_id': [1], 'total_revenue': [100.0], 'attributed_spend': [50.0], 'attribution_source': ['Sales Sheet UTM']})
-    camp_sum = pd.DataFrame({'Node Name': ['C1'], 'Sales': [1], 'Revenue': [100.0], 'Spend': [50.0]})
+    camp_sum = pd.DataFrame({'Campaign Name': ['C1'], 'Total Sales': [1], 'Total Revenue': [100.0], 'Raw Meta Spend': [50.0]})
     adset_sum = pd.DataFrame({'Node Name': ['C1>A1'], 'Sales': [1], 'Revenue': [100.0], 'Spend': [50.0]})
     ad_sum = pd.DataFrame({'Node Name': ['C1>A1>AD1'], 'Sales': [1], 'Revenue': [100.0], 'Spend': [50.0]})
     

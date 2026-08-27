@@ -49,7 +49,7 @@ def run_verification(
     total_sales = len(all_sales_df)
     attributed_sales_count = len(all_sales_df[all_sales_df['attribution_source'] != 'Unattributed']) if 'attribution_source' in all_sales_df.columns else total_sales
     unattributed_sales_count = total_sales - attributed_sales_count
-    c_sales = camp_summary['Sales'].sum() if not camp_summary.empty else 0
+    c_sales = camp_summary['Total Sales'].sum() if not camp_summary.empty else 0
     a_sales = adset_summary['Sales'].sum() if not adset_summary.empty else 0
     ad_sales = ad_summary['Sales'].sum() if not ad_summary.empty else 0
     
@@ -64,7 +64,7 @@ def run_verification(
     # Campaign summaries only show attributed revenue — compare against attributed revenue only
     attributed_sales_df = all_sales_df[all_sales_df['attribution_source'] != 'Unattributed'] if 'attribution_source' in all_sales_df.columns else all_sales_df
     attr_rev = attributed_sales_df['total_revenue'].sum() if not attributed_sales_df.empty and 'total_revenue' in attributed_sales_df.columns else 0.0
-    c_rev = camp_summary['Revenue'].sum() if not camp_summary.empty else 0.0
+    c_rev = camp_summary['Total Revenue'].sum() if not camp_summary.empty else 0.0
     a_rev = adset_summary['Revenue'].sum() if not adset_summary.empty else 0.0
     ad_rev = ad_summary['Revenue'].sum() if not ad_summary.empty else 0.0
     
@@ -95,7 +95,7 @@ def run_verification(
         )
 
     # Check 5: Summary spend totals
-    c_s = camp_summary['Spend'].sum() if not camp_summary.empty and 'Spend' in camp_summary.columns else 0.0
+    c_s = camp_summary['Raw Meta Spend'].sum() if not camp_summary.empty and 'Raw Meta Spend' in camp_summary.columns else 0.0
     as_s = adset_summary['Spend'].sum() if not adset_summary.empty and 'Spend' in adset_summary.columns else 0.0
     ad_s = ad_summary['Spend'].sum() if not ad_summary.empty and 'Spend' in ad_summary.columns else 0.0
     margin = 0.01

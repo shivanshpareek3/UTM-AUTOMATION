@@ -31,29 +31,12 @@ def generate_workbook(filepath: str, data: Dict[str, pd.DataFrame]):
     wb = Workbook()
     wb.remove(wb.active) # Remove default sheet
     
-    sheet_names = [
-        "1. ⚙ Settings & Run Log",
-        "2. 📋 All Sales (Attributed)",
-        "3. 📢 Campaign Summary",
-        "4. 🎯 Ad Set Summary",
-        "5. 🎨 Ad Creative Summary",
-        "6. 📍 Placement Summary",
-        "7. 🏦 Ad Account Comparison",
-        "8. 💰 Free vs Paid Funnel",
-        "9. 🚨 Zero-ROI Waste Report",
-        "10. ❓ Unattributed Sales",
-        "11. 🔁 Old Leads (Separate)",
-        "12. 💳 Spend Reference",
-        "13. ✅ Verification",
-        "14. 🚫 Excluded Sales"
-    ]
-    
     # Currency and Percentage formats
     currency_fmt = '₹#,##0.00'
     pct_fmt = '0.00%'
     roas_fmt = '0.0"x"'
     
-    for sheet_name in sheet_names:
+    for sheet_name in data.keys():
         ws = wb.create_sheet(title=sheet_name[:31]) # Excel limits to 31 chars
         
         df = data.get(sheet_name)
@@ -63,8 +46,13 @@ def generate_workbook(filepath: str, data: Dict[str, pd.DataFrame]):
         df = df.replace([float('inf'), float('-inf')], None)
         df = df.where(pd.notnull(df), None)
         
-        for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=True), 1):
-            ws.append(row)
+        cols = list(df.columns)
+        ws.append(cols)
+        r_idx = 1
+        for idx, row_data in df.iterrows():
+            r_idx += 1
+            # Explicit canonical-column-to-output-column mapping guarantees no positional shifts
+            ws.append([row_data.get(c, None) for c in cols])
             
         apply_formatting(ws)
         

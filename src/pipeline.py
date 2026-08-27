@@ -383,13 +383,7 @@ def run_pipeline(
         "5. 🎨 Ad Creative Summary": ad_sum,
         "6. 📍 Placement Summary": placement_sum,
         "7. 🏦 Ad Account Comparison": ad_account_comp,
-        "8. 💰 Free vs Paid Funnel": free_paid,
-        "9. 🚨 Zero-ROI Waste Report": zero_roi,
-        "10. ❓ Unattributed Sales": unattributed_sales,
-        "11. 🔁 Old Leads (Separate)": old_leads,
-        "12. 💳 Spend Reference": spend_ref,
-        "13. ✅ Verification": ver_df,
-        "14. 🚫 Excluded Sales": excluded_sales
+        "8. 🚨 Zero-ROI Waste Report": zero_roi
     }
     
     # --- PHASE 1 RECONCILIATION PRINT ---
@@ -412,11 +406,11 @@ def run_pipeline(
     print(f"Attributed Spend: {metrics['attributed_spend']}")
     print(f"Unallocated Spend: {metrics['unallocated_spend']}")
     print("-" * 50)
-    print(f"Campaign Sales: {camp_sum['Sales'].sum() if not camp_sum.empty else 0}")
+    print(f"Campaign Sales: {camp_sum['Total Sales'].sum() if not camp_sum.empty else 0}")
     print(f"Ad Set Sales: {adset_sum['Sales'].sum() if not adset_sum.empty else 0}")
     print(f"Ad Creative Sales: {ad_sum['Sales'].sum() if not ad_sum.empty else 0}")
     print("-" * 50)
-    print(f"Campaign Revenue: {camp_sum['Revenue'].sum() if not camp_sum.empty else 0}")
+    print(f"Campaign Revenue: {camp_sum['Total Revenue'].sum() if not camp_sum.empty else 0}")
     print(f"Ad Set Revenue: {adset_sum['Revenue'].sum() if not adset_sum.empty else 0}")
     print(f"Ad Creative Revenue: {ad_sum['Revenue'].sum() if not ad_sum.empty else 0}")
     print("-" * 50)

@@ -24,7 +24,8 @@ st.sidebar.header("⚙ Settings")
 client_name = st.sidebar.text_input("Client / Report Name", "Antigravity Default")
 
 cutoff_date = st.sidebar.date_input("New vs Old Lead Cutoff Date", pd.to_datetime("2024-01-01"))
-fallback_price = st.sidebar.number_input("Fallback Price Per Sale", value=8999.0)
+funnel_type = st.sidebar.radio("Funnel Type", ["Paid", "Free"])
+fallback_price = st.sidebar.number_input("Fallback Price Per Sale (if Paid)", value=8999.0) if funnel_type == "Paid" else 0.0
 zero_roi_threshold = st.sidebar.number_input("Zero-ROI Waste Threshold", value=5000.0)
 currency = st.sidebar.text_input("Currency", "INR")
 
@@ -32,6 +33,7 @@ settings = {
     'report_name': client_name,
     'client_name': client_name,
     'cutoff_date': str(cutoff_date),
+    'funnel_type': funnel_type,
     'fallback_price': float(fallback_price),
     'zero_roi_threshold': float(zero_roi_threshold),
     'currency': currency,
@@ -100,10 +102,10 @@ if leads_file and sales_file and meta_files:
     # MAPPING UI
     # ---------------------------------------------------------
     strict_leads = ['email', 'registration_date', 'campaign', 'ad_set', 'ad_creative']
-    opt_leads = ['webinar_type', 'registration_fee', 'phone', 'lead_source', 'lead_status']
+    opt_leads = ['name', 'webinar_type', 'registration_fee', 'phone', 'lead_source', 'lead_status']
     strict_sales = ['email']
-    opt_sales = ['sale_date', 'order_amount', 'payment_status', 'order_id']
-    strict_meta = ['campaign', 'spend', 'Day']
+    opt_sales = ['name', 'phone', 'sale_date', 'order_amount', 'payment_status', 'order_id']
+    strict_meta = ['campaign', 'spend', 'Date']
     opt_meta = ['ad_set', 'ad', 'Reporting starts', 'Reporting ends']
     
     mapping_dict = {'leads': {}, 'sales': {}, 'meta': []}
@@ -206,7 +208,7 @@ if leads_file and sales_file and meta_files:
     
     if meta_dfs:
         for i in range(len(meta_dfs)):
-            inv_meta = {v: k for k, v in mapping_dict['meta'][i].items()}
+            inv_meta = {v: ('Day' if k == 'Date' else k) for v, k in mapping_dict['meta'][i].items()}
             meta_dfs[i].rename(columns=inv_meta, inplace=True)
             
     meta_df = pd.concat(meta_dfs, ignore_index=True) if len(meta_dfs) > 1 else meta_dfs[0]
@@ -435,12 +437,8 @@ if leads_file and sales_file and meta_files:
                 st.header("6. Final Metrics Summary")
                 
                 st.markdown("#### SECTION 1: LEADS & FUNNEL")
-                ml1, ml2, ml3, ml4, ml5 = st.columns(5)
+                ml1 = st.columns(1)[0]
                 ml1.metric("Total Leads", metrics.get('total_leads'))
-                ml2.metric("Paid Leads", metrics.get('paid_leads'))
-                ml3.metric("Unpaid Leads", metrics.get('unpaid_leads'))
-                ml4.metric("Paid Funnel %", f"{metrics.get('paid_funnel_percent', 0):.2f}%")
-                ml5.metric("Unpaid Funnel %", f"{metrics.get('unpaid_funnel_percent', 0):.2f}%")
                 
                 st.markdown("#### SECTION 2: SALES & REVENUE")
                 mc1, mc2, mc3 = st.columns(3)
@@ -471,12 +469,9 @@ if leads_file and sales_file and meta_files:
                 mc11.metric("Unattributed Revenue", f"{currency} {unattr_rev:,.2f}")
                 
                 st.markdown("#### SECTION 3: META SPEND & ATTRIBUTION")
-                ms1, ms2, ms3, ms4 = st.columns(4)
+                ms1, ms3 = st.columns(2)
                 ms1.metric("Raw Meta Spend", f"{currency} {metrics.get('raw_meta_spend', 0):,.2f}")
-                ms2.metric("Attributed Spend", f"{currency} {metrics.get('attributed_spend', 0):,.2f}")
                 ms3.metric("Unallocated Spend", f"{currency} {metrics.get('unallocated_spend', 0):,.2f}")
-                spend_attr_rt = metrics.get('spend_attribution_rate')
-                ms4.metric("Spend Attribution Rate", f"{spend_attr_rt:.1f}%" if spend_attr_rt != "N/A" else "N/A")
                 
                 if metrics.get('attributed_spend', 0) == 0:
                     st.warning(f"₹0 — No Meta spend was attributable within the selected period.")

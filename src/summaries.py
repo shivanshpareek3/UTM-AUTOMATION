@@ -84,4 +84,23 @@ def build_summaries(all_sales_df: pd.DataFrame, leads_df: pd.DataFrame, camp_spe
     ad_summary = agg_level(['camp_norm', 'adset_norm', 'ad_norm'], ad_spend)
     placement_summary = agg_level(['camp_norm', 'placement_norm'], placement_spend)
     
+    # NOW FORMAT CAMPAIGN SUMMARY ONLY
+    if not camp_summary.empty:
+        camp_summary['Campaign Name'] = camp_summary['Node Name']
+        camp_summary['Total Leads'] = camp_summary['Leads']
+        camp_summary['Total Sales'] = camp_summary['Sales']
+        camp_summary['Attributed Sales'] = camp_summary['Sales']
+        camp_summary['Total Revenue'] = camp_summary['Revenue']
+        camp_summary['Raw Meta Spend'] = camp_summary['Spend']
+        camp_summary['Spend / Cost'] = camp_summary['Spend']
+        camp_summary['Conversion Rate'] = camp_summary['Conversion Rate %']
+        camp_summary['ROI'] = camp_summary['ROI %']
+        camp_summary['Price Per Sale'] = fallback_price
+        camp_summary['Funnel Type'] = settings.get('funnel_type', 'Paid') if settings else 'Paid'
+        
+        c_cols = ['Campaign Name', 'Total Leads', 'Total Sales', 'Attributed Sales', 'Total Revenue', 'Raw Meta Spend', 'Spend / Cost', 'CPL', 'CAC', 'ROAS', 'ROI', 'Conversion Rate', 'Profit', 'Price Per Sale', 'Funnel Type']
+        camp_summary = camp_summary[c_cols]
+    else:
+        camp_summary = pd.DataFrame(columns=['Campaign Name', 'Total Leads', 'Total Sales', 'Attributed Sales', 'Total Revenue', 'Raw Meta Spend', 'Spend / Cost', 'CPL', 'CAC', 'ROAS', 'ROI', 'Conversion Rate', 'Profit', 'Price Per Sale', 'Funnel Type'])
+        
     return camp_summary, adset_summary, ad_summary, placement_summary
