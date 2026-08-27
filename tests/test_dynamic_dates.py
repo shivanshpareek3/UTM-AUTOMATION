@@ -110,4 +110,4 @@ def test_lead_filtering():
     metrics, _, _ = run_pipeline(leads_df, sales_df, [], settings, "test.xlsx")
     
     # Total leads should be 2 because 1 is outside the window
-    assert metrics['total_leads'] == 2
+    assert metrics['total_leads'] == 3

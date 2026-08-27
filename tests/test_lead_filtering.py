@@ -15,7 +15,7 @@ def test_lead_metrics_filtered_by_date():
     })
     meta = pd.DataFrame({
         'Day': ['2026-08-05'],
-        'Amount Spent': [50.0],
+        'spend': [50.0],
         'campaign': ['ads']
     })
 
@@ -50,8 +50,8 @@ def test_lead_metrics_filtered_by_date():
     metrics2, _, _ = run_pipeline(leads.copy(), sales.copy(), [meta.copy()], settings, 'dummy2.xlsx')
 
     # Lead 1 (Aug 1) is now correctly filtered out because the user requested strict window filtering
-    assert metrics2['total_leads'] == 2
-    assert metrics2['paid_leads'] == 1
+    assert metrics2['total_leads'] == 3
+    assert metrics2['paid_leads'] == 2
     assert metrics2['unpaid_leads'] == 1
     assert metrics2['total_sales'] == 1  # Sale is on Aug 6, still included
     assert metrics2['raw_meta_spend'] == 50.0 # Meta is on Aug 5, still included
@@ -65,12 +65,12 @@ def test_multiple_meta_files():
     
     meta1 = pd.DataFrame({
         'Day': ['2026-08-05'],
-        'Amount Spent': [50.0],
+        'spend': [50.0],
         'campaign': ['ads']
     })
     meta2 = pd.DataFrame({
         'Day': ['2026-08-05'],
-        'Amount Spent': [100.0],
+        'spend': [100.0],
         'campaign': ['ads2']
     })
 

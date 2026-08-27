@@ -23,15 +23,11 @@ def allocate_spend(sales_df: pd.DataFrame, meta_df: pd.DataFrame, leads_df: pd.D
     if meta_df.empty:
         if not sales_df.empty:
             sales_df['attributed_spend'] = 0.0
-        return sales_df, pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(columns=['camp_norm', 'placement_norm', 'Amount Spent'])
+        return sales_df, pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(columns=['camp_norm', 'placement_norm', 'spend'])
         
     window_meta = meta_df.copy()
     
-    # Normalize Meta names for joining
-    if 'spend' in window_meta.columns and 'Amount Spent' not in window_meta.columns:
-        window_meta = window_meta.rename(columns={'spend': 'Amount Spent'})
-        
-    window_meta['Amount Spent'] = pd.to_numeric(window_meta['Amount Spent'], errors='coerce').fillna(0.0)
+    window_meta['spend'] = pd.to_numeric(window_meta['spend'], errors='coerce').fillna(0.0)
     window_meta['camp_norm'] = window_meta.get('campaign', window_meta.get('Campaign Name', window_meta.get('Campaign name', pd.Series(dtype=str)))).apply(norm_camp)
     
     # Safely handle missing ad_set/ad columns in Meta reports (e.g. Campaign-level reports)
@@ -49,15 +45,15 @@ def allocate_spend(sales_df: pd.DataFrame, meta_df: pd.DataFrame, leads_df: pd.D
     else:
         window_meta['ad_norm'] = ""
     
-    # Aggregate spend at each level
-    ad_spend = window_meta.groupby(['camp_norm', 'adset_norm', 'ad_norm'])['Amount Spent'].sum().reset_index()
-    adset_spend = window_meta.groupby(['camp_norm', 'adset_norm'])['Amount Spent'].sum().reset_index()
-    camp_spend = window_meta.groupby(['camp_norm'])['Amount Spent'].sum().reset_index()
-    
+    # Meta spend broken down by tiers
+    ad_spend = window_meta.groupby(['camp_norm', 'adset_norm', 'ad_norm'])['spend'].sum().reset_index()
+    adset_spend = window_meta.groupby(['camp_norm', 'adset_norm'])['spend'].sum().reset_index()
+    camp_spend = window_meta.groupby(['camp_norm'])['spend'].sum().reset_index()
+
     if sales_df.empty:
         if 'attributed_spend' not in sales_df.columns:
             sales_df['attributed_spend'] = pd.Series(dtype=float)
-        return sales_df, camp_spend, adset_spend, ad_spend, pd.DataFrame(columns=['camp_norm', 'placement_norm', 'Amount Spent'])
+        return sales_df, camp_spend, adset_spend, ad_spend, pd.DataFrame(columns=['camp_norm', 'placement_norm', 'spend'])
 
     # Count ALL attributed sales at each level pool
     # This correctly honors sales that have deep UTMs even if Meta spend is rolled up
@@ -71,9 +67,9 @@ def allocate_spend(sales_df: pd.DataFrame, meta_df: pd.DataFrame, leads_df: pd.D
     ad_merged = pd.merge(ad_spend, ad_sales_counts, on=['camp_norm', 'adset_norm', 'ad_norm'], how='left')
     ad_merged['sales_count'] = ad_merged['sales_count'].fillna(0)
     
-    ad_merged['allocated_spend'] = ad_merged.apply(lambda r: r['Amount Spent'] if r['sales_count'] > 0 else 0.0, axis=1)
-    ad_merged['remaining_spend'] = ad_merged['Amount Spent'] - ad_merged['allocated_spend']
-    ad_merged['spend_per_sale'] = ad_merged.apply(lambda r: r['Amount Spent'] / r['sales_count'] if r['sales_count'] > 0 else 0.0, axis=1)
+    ad_merged['allocated_spend'] = ad_merged.apply(lambda r: r['spend'] if r['sales_count'] > 0 else 0.0, axis=1)
+    ad_merged['remaining_spend'] = ad_merged['spend'] - ad_merged['allocated_spend']
+    ad_merged['spend_per_sale'] = ad_merged.apply(lambda r: r['spend'] / r['sales_count'] if r['sales_count'] > 0 else 0.0, axis=1)
     
     # Calculate allocated spend at Adset Level
     # Pool remaining spend from Ads into the Adset
@@ -120,10 +116,10 @@ def allocate_spend(sales_df: pd.DataFrame, meta_df: pd.DataFrame, leads_df: pd.D
     
     # Invariant Check
     total_attr = sales_df['attributed_spend'].sum()
-    total_meta = window_meta['Amount Spent'].sum()
+    total_meta = window_meta['spend'].sum()
     
     if total_attr > total_meta + 0.01: # allow small float rounding diff
         logger.error(f"INVARIANT VIOLATION: Total Attributed ({total_attr}) > Meta Spend ({total_meta})")
         raise ValueError("Total Attributed Spend <= Total Windowed Meta Spend invariant violated.")
         
-    return sales_df, camp_spend, adset_spend, ad_spend, pd.DataFrame(columns=['camp_norm', 'placement_norm', 'Amount Spent'])
+    return sales_df, camp_spend, adset_spend, ad_spend, pd.DataFrame(columns=['camp_norm', 'placement_norm', 'spend'])

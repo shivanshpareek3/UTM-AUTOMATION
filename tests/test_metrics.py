@@ -12,7 +12,7 @@ def test_calculate_metrics():
     })
     reg_rev = pd.DataFrame({'reg_revenue': [50.0, 50.0]})
     meta = pd.DataFrame({
-        'Amount Spent': [50.0],
+        'spend': [50.0],
         'campaign': ['C1'],
         'order_amount': [8999.0]
     })
@@ -44,7 +44,7 @@ def test_calculate_metrics_zero_spend():
     })
     reg_rev = pd.DataFrame({'reg_revenue': [0.0]})
     meta = pd.DataFrame({
-        'Amount Spent': [0.0],
+        'spend': [0.0],
         'campaign': ['C1'],
         'order_amount': [8999.0]
     })
@@ -67,7 +67,7 @@ def test_profit_calculation_negative():
     })
     reg_rev = pd.DataFrame({'reg_revenue': [0.0]})
     meta = pd.DataFrame({
-        'Amount Spent': [406647.08],
+        'spend': [406647.08],
         'campaign': ['C1'],
         'order_amount': [8999.0]
     })
@@ -87,7 +87,7 @@ def test_profit_calculation_positive():
     })
     reg_rev = pd.DataFrame({'reg_revenue': [0.0]})
     meta = pd.DataFrame({
-        'Amount Spent': [100000.0],
+        'spend': [100000.0],
         'campaign': ['C1'],
         'order_amount': [8999.0]
     })
@@ -116,7 +116,7 @@ def test_paid_unpaid_metrics():
     })
     reg_rev = pd.DataFrame({'reg_revenue': [0.0]})
     meta = pd.DataFrame({
-        'Amount Spent': [10.0],
+        'spend': [10.0],
         'campaign': ['C1'],
         'order_amount': [8999.0]
     })

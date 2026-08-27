@@ -259,9 +259,7 @@ def run_pipeline(
             
         valid_window_meta = window_meta[window_meta['camp_norm'] != '']
         
-        if 'Amount Spent' in valid_window_meta.columns:
-            total_windowed_meta_spend = pd.to_numeric(valid_window_meta['Amount Spent'], errors='coerce').fillna(0).sum()
-        elif 'spend' in valid_window_meta.columns:
+        if 'spend' in valid_window_meta.columns:
             total_windowed_meta_spend = pd.to_numeric(valid_window_meta['spend'], errors='coerce').fillna(0).sum()
 
     total_leads_in_window = len(leads_in_window)

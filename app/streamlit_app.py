@@ -118,7 +118,7 @@ if leads_file and sales_file and meta_files:
     # MAPPING UI
     # ---------------------------------------------------------
     strict_leads = ['email', 'registration_date', 'campaign', 'ad_set', 'ad_creative']
-    opt_leads = ['name', 'webinar_type', 'registration_fee', 'phone', 'lead_source', 'lead_status']
+    opt_leads = ['name', 'webinar_type', 'registration_fee', 'phone', 'source', 'lead_status']
     strict_sales = ['email']
     opt_sales = ['name', 'phone', 'sale_date', 'order_amount', 'payment_status', 'order_id']
     strict_meta = ['campaign', 'spend', 'Date']

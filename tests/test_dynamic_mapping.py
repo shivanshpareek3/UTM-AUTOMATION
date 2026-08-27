@@ -56,7 +56,7 @@ def build_sales_a():
 def build_meta_a():
     return pd.DataFrame({
         'Campaign': ['Camp1', 'Camp2'],
-        'Amount Spent': [100, 200],
+        'spend': [100, 200],
         'Day': ['2024-01-01', '2024-01-02'],
         'Ad Set': ['Adset1', 'Adset2'],
         'Ad Name': ['Ad1', 'Ad2']
@@ -97,7 +97,7 @@ def test_pipeline_with_different_schemas(tmp_path):
     # Explicit mapping
     leads_a = leads_a.rename(columns={'Email': 'email', 'Phone': 'phone', 'Registration Date': 'registration_date', 'Campaign': 'campaign', 'Ad Set': 'ad_set', 'Ad Name': 'ad_creative'})
     sales_a = sales_a.rename(columns={'Email': 'email', 'Sale Date': 'sale_date', 'Payment Status': 'payment_status', 'Order Amount': 'order_amount'})
-    meta_a = meta_a.rename(columns={'Campaign': 'campaign', 'Amount Spent': 'spend', 'Day': 'Day', 'Ad Set': 'ad_set', 'Ad Name': 'ad'})
+    meta_a = meta_a.rename(columns={'Campaign': 'campaign', 'spend': 'spend', 'Day': 'Day', 'Ad Set': 'ad_set', 'Ad Name': 'ad'})
     
     metrics_a, _, _ = run_pipeline(leads_a, sales_a, [meta_a], settings, str(tmp_path / "out_a.xlsx"))
     
@@ -117,7 +117,7 @@ def test_missing_optional_column(tmp_path):
     leads = leads.drop(columns=['Ad Set', 'Ad Name', 'Phone'])
     
     sales = build_sales_a().rename(columns={'Email': 'email', 'Sale Date': 'sale_date', 'Order Amount': 'order_amount'})
-    meta = build_meta_a().rename(columns={'Campaign': 'campaign', 'Amount Spent': 'spend', 'Day': 'Day'})
+    meta = build_meta_a().rename(columns={'Campaign': 'campaign', 'spend': 'spend', 'Day': 'Day'})
     
     settings = {
         'cutoff_date': '2024-01-01',

@@ -6,7 +6,7 @@ def test_map_columns():
     df = pd.DataFrame({
         'Email Address': ['a@b.com'],
         'Campaign Name': ['C1'],
-        'Amount Spent': [100]
+        'spend': [100]
     })
     
     aliases = {

@@ -9,12 +9,12 @@ def test_duplicate_meta_rows_dropped():
     # Exact duplicate files
     meta1 = pd.DataFrame({
         'Day': ['2026-08-05'],
-        'Amount Spent': [50.0],
+        'spend': [50.0],
         'campaign': ['ads']
     })
     meta2 = pd.DataFrame({
         'Day': ['2026-08-05'],
-        'Amount Spent': [50.0],
+        'spend': [50.0],
         'campaign': ['ads']
     })
 
@@ -38,12 +38,12 @@ def test_overlapping_but_different_meta_rows_kept():
     # Different campaigns on the same day
     meta1 = pd.DataFrame({
         'Day': ['2026-08-05'],
-        'Amount Spent': [50.0],
+        'spend': [50.0],
         'campaign': ['ads1']
     })
     meta2 = pd.DataFrame({
         'Day': ['2026-08-05'],
-        'Amount Spent': [100.0],
+        'spend': [100.0],
         'campaign': ['ads2']
     })
 

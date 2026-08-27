@@ -28,18 +28,17 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
             meta_df_copy['camp_norm'] = "unmapped"
             
         valid_meta = meta_df_copy[meta_df_copy['camp_norm'] != '']
+        raw_meta_spend = 0.0
+        attributed_spend = 0.0
         
-        if 'Amount Spent' in valid_meta.columns:
-            valid_meta['Amount Spent Num'] = pd.to_numeric(valid_meta['Amount Spent'], errors='coerce').fillna(0)
-            raw_meta_spend = valid_meta['Amount Spent Num'].sum()
-        elif 'spend' in valid_meta.columns:
-            valid_meta['Amount Spent Num'] = pd.to_numeric(valid_meta['spend'], errors='coerce').fillna(0)
-            raw_meta_spend = valid_meta['Amount Spent Num'].sum()
+        if 'spend' in valid_meta.columns:
+            valid_meta['spend'] = pd.to_numeric(valid_meta['spend'], errors='coerce').fillna(0)
+            raw_meta_spend = valid_meta['spend'].sum()
         else:
-            raw_meta_spend = 0.0
-            valid_meta['Amount Spent Num'] = 0.0
+            valid_meta['spend'] = 0.0
     else:
         raw_meta_spend = 0.0
+        attributed_spend = 0.0
         
     if 'attribution_source' in sales_df.columns:
         attributed_sales_df = sales_df[sales_df['attribution_source'] != 'Unattributed']
@@ -55,7 +54,7 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
     if not meta_df.empty and not attributed_sales_df.empty:
         from src.normalization import unify_campaign_name
         attr_camps = set(attributed_sales_df['campaign'].dropna().apply(unify_campaign_name)) if 'campaign' in attributed_sales_df.columns else set()
-        attributed_spend = valid_meta[valid_meta['camp_norm'].isin(attr_camps)]['Amount Spent Num'].sum()
+        attributed_spend = valid_meta[valid_meta['camp_norm'].isin(attr_camps)]['spend'].sum()
     else:
         attributed_spend = 0.0
         

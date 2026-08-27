@@ -15,7 +15,7 @@ def build_summaries(all_sales_df: pd.DataFrame, leads_df: pd.DataFrame, camp_spe
             return pd.DataFrame(columns=level_cols + ['Spend', 'Leads', 'CPL', 'Sales', 'Conversion Rate %', 'Revenue', 'Profit', 'ROAS', 'ROI %', 'CAC', 'Profitable?'])
             
         if spend_df.empty:
-            spend_df = pd.DataFrame(columns=level_cols + ['Amount Spent'])
+            spend_df = pd.DataFrame(columns=level_cols + ['spend'])
         else:
             for col in level_cols:
                 if col in spend_df.columns:
@@ -47,14 +47,14 @@ def build_summaries(all_sales_df: pd.DataFrame, leads_df: pd.DataFrame, camp_spe
         
         # Replace NaN with 0
         res = res.fillna({
-            'Amount Spent': 0.0, 'Sales': 0, 'Leads': 0
+            'spend': 0.0, 'Sales': 0, 'Leads': 0
         })
         
         # Golden Methodology Revenue Calculation
         res['Revenue'] = res['Sales'] * funnel_price
         
         # Rename spend column
-        res = res.rename(columns={'Amount Spent': 'Spend'})
+        res = res.rename(columns={'spend': 'Spend'})
         
         # Compute Profit (Golden Methodology: Revenue - Spend)
         res['Profit'] = res['Revenue'] - res['Spend']

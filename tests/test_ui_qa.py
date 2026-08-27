@@ -33,7 +33,7 @@ def test_streamlit_app():
 
     pd.DataFrame({
         'Campaign Name': ['C1'], 'Ad Set Name': ['A1'], 'Ad Name': ['AD1'],
-        'Amount Spent': [100.0], 'Day': ['2024-01-01']
+        'spend': [100.0], 'Day': ['2024-01-01']
     }).to_csv(meta_csv, index=False)
 
     # Note: Streamlit's AppTest currently does not fully support file_uploader interactions 
