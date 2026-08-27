@@ -7,8 +7,13 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
     total_leads = len(leads_df)
     total_sales = len(sales_df)
     
-    fallback_price = float(settings.get('fallback_price', 8999.0)) if settings else 8999.0
-    
+    funnel_type = settings.get('funnel_type', 'Paid') if settings else 'Paid'
+    if funnel_type == 'Paid':
+        fallback_val = float(settings.get('fallback_price', 8999.0)) if settings else 8999.0
+        funnel_price = float(settings.get('paid_funnel_price', fallback_val)) if settings else fallback_val
+    else:
+        funnel_price = 0.0
+        
     if not meta_df.empty:
         # Exclude blank campaigns
         from src.normalization import unify_campaign_name
@@ -57,15 +62,15 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
     unallocated_spend = raw_meta_spend - attributed_spend
     
     # Calculate revenue using Matched Sales * realised_sale_value
-    attributed_revenue = attributed_sales * fallback_price
+    attributed_revenue = attributed_sales * funnel_price
     
     attributed_leads = len(leads_df[leads_df['has_valid_utm'] == True]) if 'has_valid_utm' in leads_df.columns else 0
     unattributed_leads = total_leads - attributed_leads
     lead_attribution_rate = (attributed_leads / total_leads * 100) if total_leads > 0 else "N/A"
     
-    # Total revenue is all sales * fallback_price
-    total_revenue = total_sales * fallback_price
-    unattributed_revenue = unattributed_sales * fallback_price
+    # Total revenue is all sales * funnel_price
+    total_revenue = total_sales * funnel_price
+    unattributed_revenue = unattributed_sales * funnel_price
     
     # In Golden methodology, backend revenue is total revenue, reg_revenue is 0 (or not used in global summary)
     backend_revenue = total_revenue
@@ -107,8 +112,8 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
     cac = (raw_meta_spend / attributed_sales) if (raw_meta_spend > 0 and attributed_sales > 0) else "N/A"
     cvr = (attributed_sales / total_leads * 100) if total_leads > 0 else "N/A"
     
-    per_sale_value = fallback_price
-    attributed_per_sale_value = fallback_price
+    per_sale_value = funnel_price
+    attributed_per_sale_value = funnel_price
 
     return {
         'total_leads': total_leads,

@@ -3,7 +3,12 @@ import pandas as pd
 def build_summaries(all_sales_df: pd.DataFrame, leads_df: pd.DataFrame, camp_spend: pd.DataFrame, adset_spend: pd.DataFrame, ad_spend: pd.DataFrame, placement_spend: pd.DataFrame, settings: dict = None):
     """Build the Campaign, Ad Set, Ad Creative, and Placement summary dataframes using Golden Methodology."""
     
-    fallback_price = float(settings.get('fallback_price', 8999.0)) if settings else 8999.0
+    funnel_type = settings.get('funnel_type', 'Paid') if settings else 'Paid'
+    if funnel_type == 'Paid':
+        fallback_val = float(settings.get('fallback_price', 8999.0)) if settings else 8999.0
+        funnel_price = float(settings.get('paid_funnel_price', fallback_val)) if settings else fallback_val
+    else:
+        funnel_price = 0.0
     
     def agg_level(level_cols, spend_df):
         if all_sales_df.empty and spend_df.empty:
@@ -46,7 +51,7 @@ def build_summaries(all_sales_df: pd.DataFrame, leads_df: pd.DataFrame, camp_spe
         })
         
         # Golden Methodology Revenue Calculation
-        res['Revenue'] = res['Sales'] * fallback_price
+        res['Revenue'] = res['Sales'] * funnel_price
         
         # Rename spend column
         res = res.rename(columns={'Amount Spent': 'Spend'})
@@ -95,7 +100,7 @@ def build_summaries(all_sales_df: pd.DataFrame, leads_df: pd.DataFrame, camp_spe
         camp_summary['Spend / Cost'] = camp_summary['Spend']
         camp_summary['Conversion Rate'] = camp_summary['Conversion Rate %']
         camp_summary['ROI'] = camp_summary['ROI %']
-        camp_summary['Price Per Sale'] = fallback_price
+        camp_summary['Price Per Sale'] = funnel_price
         camp_summary['Funnel Type'] = settings.get('funnel_type', 'Paid') if settings else 'Paid'
         
         c_cols = ['Campaign Name', 'Total Leads', 'Total Sales', 'Attributed Sales', 'Total Revenue', 'Raw Meta Spend', 'Spend / Cost', 'CPL', 'CAC', 'ROAS', 'ROI', 'Conversion Rate', 'Profit', 'Price Per Sale', 'Funnel Type']
