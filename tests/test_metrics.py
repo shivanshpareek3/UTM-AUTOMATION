@@ -7,12 +7,14 @@ def test_calculate_metrics():
     sales = pd.DataFrame({
         'email': ['A'],
         'attribution_source': ['Leads DB (email)'],
-        'campaign': ['C1']
+        'campaign': ['C1'],
+        'order_amount': [8999.0]
     })
     reg_rev = pd.DataFrame({'reg_revenue': [50.0, 50.0]})
     meta = pd.DataFrame({
         'Amount Spent': [50.0],
-        'campaign': ['C1']
+        'campaign': ['C1'],
+        'order_amount': [8999.0]
     })
     
     settings = {'fallback_price': 8999.0}
@@ -22,8 +24,8 @@ def test_calculate_metrics():
     assert metrics['total_sales'] == 1
     assert metrics['attributed_sales'] == 1
     assert metrics['backend_revenue'] == 8999.0
-    assert metrics['total_reg_revenue'] == 0.0
-    assert metrics['total_revenue'] == 8999.0
+    assert metrics['total_reg_revenue'] == 100.0
+    assert metrics['total_revenue'] == 9099.0
     assert metrics['attributed_revenue'] == 8999.0
     assert metrics['attributed_spend'] == 50.0
     assert metrics['profit'] == 8999.0 - 50.0
@@ -37,12 +39,14 @@ def test_calculate_metrics_zero_spend():
     leads = pd.DataFrame({'email': ['A']})
     sales = pd.DataFrame({
         'email': ['A'],
-        'attribution_source': ['Leads DB (email)']
+        'attribution_source': ['Leads DB (email)'],
+        'order_amount': [8999.0]
     })
     reg_rev = pd.DataFrame({'reg_revenue': [0.0]})
     meta = pd.DataFrame({
         'Amount Spent': [0.0],
-        'campaign': ['C1']
+        'campaign': ['C1'],
+        'order_amount': [8999.0]
     })
     
     settings = {'fallback_price': 8999.0}
@@ -58,12 +62,14 @@ def test_profit_calculation_negative():
     sales = pd.DataFrame({
         'email': ['A'],
         'attribution_source': ['Leads DB (email)'],
-        'campaign': ['C1']
+        'campaign': ['C1'],
+        'order_amount': [8999.0]
     })
     reg_rev = pd.DataFrame({'reg_revenue': [0.0]})
     meta = pd.DataFrame({
         'Amount Spent': [406647.08],
-        'campaign': ['C1']
+        'campaign': ['C1'],
+        'order_amount': [8999.0]
     })
     
     settings = {'fallback_price': 8999.0}
@@ -82,7 +88,8 @@ def test_profit_calculation_positive():
     reg_rev = pd.DataFrame({'reg_revenue': [0.0]})
     meta = pd.DataFrame({
         'Amount Spent': [100000.0],
-        'campaign': ['C1']
+        'campaign': ['C1'],
+        'order_amount': [8999.0]
     })
     
     settings = {'fallback_price': 8999.0}
@@ -104,12 +111,14 @@ def test_paid_unpaid_metrics():
     })
     sales = pd.DataFrame({
         'email': ['A'],
-        'attribution_source': ['Leads DB (email)']
+        'attribution_source': ['Leads DB (email)'],
+        'order_amount': [8999.0]
     })
     reg_rev = pd.DataFrame({'reg_revenue': [0.0]})
     meta = pd.DataFrame({
         'Amount Spent': [10.0],
-        'campaign': ['C1']
+        'campaign': ['C1'],
+        'order_amount': [8999.0]
     })
     
     metrics = calculate_metrics(leads, sales, reg_rev, meta, settings)

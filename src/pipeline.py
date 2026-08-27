@@ -196,27 +196,8 @@ def run_pipeline(
     else:
         standalone_reg_rev = reg_rev_df['reg_revenue'].sum() if not reg_rev_df.empty else 0.0
     
-    # 6b. Filter Leads to Reporting Period
-    ls_start_str = settings.get('lead_sales_start_date', settings.get('lead_start_date'))
-    ls_end_str = settings.get('lead_sales_end_date', settings.get('lead_end_date'))
-    
-    if ls_start_str and ls_end_str:
-        sdt = pd.to_datetime(ls_start_str)
-        edt = pd.to_datetime(ls_end_str)
-        # Ensure end date includes the full day if it has no time component
-        if edt.hour == 0 and edt.minute == 0 and edt.second == 0:
-            edt = edt + pd.Timedelta(days=1, microseconds=-1)
-            
-        if 'registration_date' in leads_df.columns:
-            parsed_reg = parse_date_series(leads_df['registration_date'])
-            # We keep leads with NaT registration dates to avoid silent data loss, 
-            # but filter out leads strictly outside the window
-            mask = parsed_reg.isna() | ((parsed_reg >= sdt) & (parsed_reg <= edt))
-            leads_in_window = leads_df[mask].copy()
-        else:
-            leads_in_window = leads_df.copy()
-    else:
-        leads_in_window = leads_df.copy()
+    # 6b. Filter Leads to Reporting Period (Golden Methodology: use all leads in file)
+    leads_in_window = leads_df.copy()
     # Generate Data Quality Warning
     def generate_warning(row):
         warnings = []

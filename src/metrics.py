@@ -68,16 +68,13 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
     unattributed_leads = total_leads - attributed_leads
     lead_attribution_rate = (attributed_leads / total_leads * 100) if total_leads > 0 else "N/A"
     
-    # Total revenue is all sales * funnel_price
-    total_revenue = total_sales * funnel_price
-    unattributed_revenue = unattributed_sales * funnel_price
+    backend_revenue = sales_df['order_amount'].sum() if 'order_amount' in sales_df.columns else 0.0
+    reg_revenue_sales = sales_df['registration_fee_applied'].sum() if 'registration_fee_applied' in sales_df.columns else 0.0
+    total_reg_revenue = reg_rev_df['reg_revenue'].sum() if not reg_rev_df.empty else 0.0
+    total_revenue = backend_revenue + total_reg_revenue
+    unattributed_revenue = total_revenue - attributed_revenue
     
-    # In Golden methodology, backend revenue is total revenue, reg_revenue is 0 (or not used in global summary)
-    backend_revenue = total_revenue
-    total_reg_revenue = 0.0
-    
-    # Golden methodology calculates top-level Profit, ROAS, ROI, CPL, and CAC using 100% of Meta spend
-    profit = attributed_revenue - raw_meta_spend
+    profit = attributed_revenue - attributed_spend
     
     paid_markers = settings.get('paid_markers', [
         "paid", "cpc", "cpm", "ppc", "paid_social", "paid_search",
@@ -106,14 +103,14 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
     unpaid_funnel_pct = (unpaid_leads / total_leads * 100) if total_leads > 0 else 0.0
 
     spend_attribution_rate = (attributed_spend / raw_meta_spend * 100) if raw_meta_spend > 0 else "N/A"
-    roas = (attributed_revenue / raw_meta_spend) if raw_meta_spend > 0 else "N/A"
-    roi = (profit / raw_meta_spend * 100) if raw_meta_spend > 0 else "N/A"
-    cpl = (raw_meta_spend / total_leads) if total_leads > 0 else "N/A"
-    cac = (raw_meta_spend / attributed_sales) if (raw_meta_spend > 0 and attributed_sales > 0) else "N/A"
-    cvr = (attributed_sales / total_leads * 100) if total_leads > 0 else "N/A"
+    roas = (attributed_revenue / attributed_spend) if attributed_spend > 0 else "N/A"
+    roi = (profit / attributed_spend * 100) if attributed_spend > 0 else "N/A"
+    cpl = (attributed_spend / total_leads) if total_leads > 0 else "N/A"
+    cac = (attributed_spend / attributed_sales) if (attributed_spend > 0 and attributed_sales > 0) else "N/A"
+    cvr = (total_sales / total_leads * 100) if total_leads > 0 else "N/A"
     
-    per_sale_value = funnel_price
-    attributed_per_sale_value = funnel_price
+    per_sale_value = (total_revenue / total_sales) if total_sales > 0 else "N/A"
+    attributed_per_sale_value = (attributed_revenue / attributed_sales) if attributed_sales > 0 else "N/A"
 
     return {
         'total_leads': total_leads,

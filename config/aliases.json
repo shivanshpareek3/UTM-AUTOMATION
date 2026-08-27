@@ -19,10 +19,10 @@
   "campaign": [
     "campaign",
     "campaign name",
+    "utm_source",
     "utm_campaign",
     "utm",
-    "utm source",
-    "utm_source"
+    "utm source"
   ],
   "ad_set": [
     "ad set",

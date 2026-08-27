@@ -48,6 +48,7 @@ def test_golden_methodology_verified(tmp_path):
     assert metrics['attributed_sales'] == 45.0
     assert metrics['unattributed_sales'] == 4.0
     assert metrics['attributed_revenue'] == 404955.0
-    assert abs(metrics['cpl'] - 135.264358118361) < 0.001
-    assert abs(metrics['cac'] - 9904.35688888889) < 0.001
-    assert abs(metrics['roas'] - 0.908589990391656) < 0.001
+    assert abs(metrics['cpl'] - 131.96795144157815) < 0.001
+    assert abs(metrics['attributed_spend'] - 434834.4) < 0.1
+    assert abs(metrics['cac'] - 9662.986666666668) < 0.001
+    assert abs(metrics['roas'] - 0.9312855652634657) < 0.001
