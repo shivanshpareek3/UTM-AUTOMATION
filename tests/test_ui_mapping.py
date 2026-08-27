@@ -38,4 +38,4 @@ def test_ui_dynamic_dropdowns_and_validation(tmp_path):
     assert "if c not in mapping_dict['leads']: still_missing_strict.append(f\"Leads: {c}\")" in content
     
     # 3. Assert canonical to actual direction is used for mapping
-    assert "mapping[req_col] = sel" in content
+    assert "mapping[req_col] = mapped_col" in content
