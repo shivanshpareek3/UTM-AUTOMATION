@@ -29,10 +29,18 @@ def attribute_sales(sales_df: pd.DataFrame, leads_df: pd.DataFrame, sentinels: L
         leads_by_phone = pd.DataFrame()
         leads_valid = pd.DataFrame()
         
+    def get_unique(data_df, col):
+        if col not in data_df.columns:
+            return []
+        c = data_df[col]
+        if isinstance(c, pd.DataFrame):
+            c = c.iloc[:, 0]
+        return c.dropna().unique()
+
     # Pre-compute fuzzy mapping for sales that don't exact match
     email_fuzzy_map = {}
-    sales_emails = df['email'].dropna().unique() if 'email' in df.columns else []
-    lead_emails = leads_valid['email'].dropna().unique() if 'email' in leads_valid.columns else []
+    sales_emails = get_unique(df, 'email')
+    lead_emails = get_unique(leads_valid, 'email')
     
     lead_emails_by_len = {}
     for le in lead_emails:
@@ -60,7 +68,7 @@ def attribute_sales(sales_df: pd.DataFrame, leads_df: pd.DataFrame, sentinels: L
             
     name_fuzzy_map = {}
     if 'name' in df.columns and 'first_name' in leads_valid.columns:
-        sales_names = df['name'].dropna().unique()
+        sales_names = get_unique(df, 'name')
         
         lead_names_by_len = {}
         for idx, lead in leads_valid.iterrows():
