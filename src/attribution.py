@@ -107,7 +107,7 @@ def attribute_sales(sales_df: pd.DataFrame, leads_df: pd.DataFrame, sentinels: L
                     val = val.iloc[0]
                 if pd.notna(val):
                     val = str(val).lower().strip()
-                    if val not in sentinels_lower and not val.isnumeric():
+                    if val and val not in sentinels_lower and not val.isnumeric():
                         return True
         return False
 
@@ -121,9 +121,9 @@ def attribute_sales(sales_df: pd.DataFrame, leads_df: pd.DataFrame, sentinels: L
         # Priority 1: Sales Sheet UTM
         if has_valid_utm_row(row):
             return {
-                'campaign': row.get('campaign'),
-                'ad_set': row.get('ad_set'),
-                'ad_creative': row.get('ad_creative'),
+                'campaign': extract_val(row, 'campaign'),
+                'ad_set': extract_val(row, 'ad_set'),
+                'ad_creative': extract_val(row, 'ad_creative'),
                 'attribution_source': 'Sales Sheet UTM'
             }
             
@@ -206,8 +206,9 @@ def attribute_sales(sales_df: pd.DataFrame, leads_df: pd.DataFrame, sentinels: L
     def get_match_level(row):
         def is_valid(key):
             val = row.get(key)
-            if isinstance(val, pd.Series): return pd.notna(val.iloc[0])
-            return pd.notna(val)
+            if isinstance(val, pd.Series): val = val.iloc[0]
+            if pd.isna(val): return False
+            return str(val).strip() != ""
             
         if row['attribution_source'] == 'Unattributed':
             return 'Unattributed'
