@@ -31,28 +31,24 @@ def generate_workbook(filepath: str, data: Dict[str, pd.DataFrame]):
     wb = Workbook()
     wb.remove(wb.active) # Remove default sheet
     
+    sheet_names = list(data.keys())
+    
     # Currency and Percentage formats
     currency_fmt = '₹#,##0.00'
     pct_fmt = '0.00%'
     roas_fmt = '0.0"x"'
     
-    for sheet_name in data.keys():
+    for sheet_name in sheet_names:
         ws = wb.create_sheet(title=sheet_name[:31]) # Excel limits to 31 chars
         
-        df = data.get(sheet_name)
-        if df is None: df = pd.DataFrame()
+        df = data.get(sheet_name, pd.DataFrame())
         
         # Replace NaN/Inf with None for Excel
         df = df.replace([float('inf'), float('-inf')], None)
         df = df.where(pd.notnull(df), None)
         
-        cols = list(df.columns)
-        ws.append(cols)
-        r_idx = 1
-        for idx, row_data in df.iterrows():
-            r_idx += 1
-            # Explicit canonical-column-to-output-column mapping guarantees no positional shifts
-            ws.append([row_data.get(c, None) for c in cols])
+        for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=True), 1):
+            ws.append(row)
             
         apply_formatting(ws)
         

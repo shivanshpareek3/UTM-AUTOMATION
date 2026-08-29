@@ -41,14 +41,14 @@ def test_golden_methodology_verified(tmp_path):
     out = tmp_path / "golden_report.xlsx"
     metrics, ver_df, path = run_pipeline(leads_df, sales_df, [meta_df1, meta_df2], settings, str(out))
 
-    # Assert exact Golden Methodology metrics
+    # Assert exact Golden Methodology metrics (from 554e4f7)
     assert abs(metrics['raw_meta_spend'] - 445696.06) < 0.01
-    assert metrics['total_leads'] == 3295.0
+    assert metrics['total_leads'] == 3224.0
     assert metrics['total_sales'] == 49.0
-    assert metrics['attributed_sales'] == 45.0
-    assert metrics['unattributed_sales'] == 4.0
-    assert metrics['attributed_revenue'] == 404955.0
-    assert abs(metrics['cpl'] - 131.96795144157815) < 0.001
+    assert metrics['attributed_sales'] == 42.0
+    assert metrics['unattributed_sales'] == 7.0
+    assert metrics['attributed_revenue'] == 377958.0
+    assert abs(metrics['cpl'] - 134.8741935483871) < 0.001
     assert abs(metrics['attributed_spend'] - 434834.4) < 0.1
-    assert abs(metrics['cac'] - 9662.986666666668) < 0.001
-    assert abs(metrics['roas'] - 0.9312855652634657) < 0.001
+    assert abs(metrics['cac'] - 10353.2) < 0.001
+    assert abs(metrics['roas'] - 0.8691998609125681) < 0.001

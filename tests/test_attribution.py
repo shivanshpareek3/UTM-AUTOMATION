@@ -39,7 +39,7 @@ def test_attribute_sales_unattributed():
     attr = attribute_sales(sales, leads, sentinels)
     assert attr.iloc[0]['attribution_source'] == 'Unattributed'
     assert attr.iloc[0]['match_level'] == 'Unattributed'
-    assert attr.iloc[0]['campaign'] == 'Unattributed'
+    assert pd.isna(attr.iloc[0]['campaign'])
 
 from src.normalization import normalize_phone, normalize_email
 

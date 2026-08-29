@@ -189,8 +189,8 @@ def run_pipeline(
     if not meta_df.empty and 'spend' not in meta_df.columns:
         raise KeyError(f"'spend' is MISSING before allocate_spend. Columns: {list(meta_df.columns)}")
         
-    sales_df, camp_spend, adset_spend, ad_spend, placement_spend = allocate_spend(
-        sales_df, meta_df, leads_df, meta_start, meta_end
+    sales_df, camp_spend, adset_spend, ad_spend = allocate_spend(
+        sales_df, meta_df, meta_start, meta_end
     )
     
     # 6. Funnel Logic (Free/Paid, Old/New)
@@ -224,11 +224,11 @@ def run_pipeline(
     sales_df['data_quality_warning'] = sales_df.apply(generate_warning, axis=1)
     
     # 7. Summaries
-    for col in ['camp_norm', 'adset_norm', 'ad_norm', 'placement_norm']:
+    for col in ['camp_norm', 'adset_norm', 'ad_norm']:
         if col not in sales_df.columns:
             sales_df[col] = ''
             
-    camp_sum, adset_sum, ad_sum, placement_sum = build_summaries(sales_df, leads_in_window, camp_spend, adset_spend, ad_spend, placement_spend, settings)
+    camp_sum, adset_sum, ad_sum = build_summaries(sales_df, leads_in_window, camp_spend, adset_spend, ad_spend)
     
     # 8. Metrics
     metrics = calculate_metrics(leads_in_window, sales_df, reg_rev_df, meta_df, settings)
@@ -300,8 +300,7 @@ def run_pipeline(
         assumed_payment_cnt=assumed_payment_cnt,
         fallback_amount_cnt=fallback_amount_cnt,
         missing_sales_cnt=missing_sales_cnt,
-        standalone_reg_revenue=standalone_reg_rev,
-        metrics=metrics
+        standalone_reg_revenue=standalone_reg_rev
     )
     
     # Prepare data for Excel
@@ -347,31 +346,42 @@ def run_pipeline(
     if settings.get('amount_source') == 'Fallback Price Per Sale':
         settings_df = pd.concat([settings_df, pd.DataFrame([{'Setting': 'Note', 'Value': 'Revenue (Total and Attributed) is Assumed/Fallback Revenue because actual order amounts were not provided.'}])], ignore_index=True)
     
-    # Supporting sheets
-    ad_account_comp = pd.DataFrame([
-        {'Metric': 'Raw Meta Spend', 'Value': metrics['raw_meta_spend']},
-        {'Metric': 'Attributed Spend', 'Value': metrics['attributed_spend']},
-        {'Metric': 'Unallocated Spend', 'Value': metrics['unallocated_spend']}
-    ])
-    zero_roi = camp_sum[(camp_sum['Sales'] == 0) & (camp_sum['Spend'] > 0)] if not camp_sum.empty and 'Spend' in camp_sum.columns else pd.DataFrame()
-    unattributed_sales = sales_df[sales_df['attribution_source'] == 'Unattributed'] if not sales_df.empty else pd.DataFrame()
-    old_leads = sales_df[sales_df['new_old_lead'] == 'Old'] if not sales_df.empty else pd.DataFrame()
-    spend_ref = meta_df.copy()
-    free_paid = pd.DataFrame([
-        {'Funnel Stage': 'Total Leads', 'Count': metrics['total_leads']},
-        {'Funnel Stage': 'Paid Leads', 'Count': metrics['paid_leads']},
-        {'Funnel Stage': 'Unpaid Leads', 'Count': metrics['unpaid_leads']}
-    ])
-    
+    # Format Campaign Summary for Excel Output
+    if not camp_sum.empty:
+        # User requested columns:
+        # Campaign Name, Ad Account, Total Leads, Total Sales, Attributed Sales, Spend / Meta Spend, CPL, CAC, Revenue, Profit, ROAS, ROI, Conversion Rate, Price Per Sale, Funnel Type
+        camp_sum_excel = camp_sum.rename(columns={
+            'Node Name': 'Campaign Name',
+            'Leads': 'Total Leads',
+            'Sales': 'Attributed Sales',
+            'Spend': 'Spend / Meta Spend',
+            'ROI %': 'ROI',
+            'Conversion Rate %': 'Conversion Rate',
+            'Revenue': 'Revenue',
+            'Profit': 'Profit',
+            'ROAS': 'ROAS'
+        })
+        
+        # Add missing columns
+        camp_sum_excel['Total Sales'] = camp_sum_excel['Attributed Sales']
+        camp_sum_excel['Price Per Sale'] = metrics.get('per_sale_value', settings.get('fallback_price', 0.0))
+        camp_sum_excel['Funnel Type'] = settings.get('funnel_type', 'Paid')
+        
+        # Reorder columns to match request:
+        camp_sum_excel = camp_sum_excel[[
+            'Campaign Name', 'Ad Account', 'Total Leads', 'Total Sales', 'Attributed Sales',
+            'Spend / Meta Spend', 'CPL', 'CAC', 'Revenue', 'Profit', 'ROAS', 'ROI',
+            'Conversion Rate', 'Price Per Sale', 'Funnel Type'
+        ]]
+    else:
+        camp_sum_excel = camp_sum.copy()
+
     workbook_data = {
         "1. ⚙ Settings & Run Log": settings_df,
         "2. 📋 All Sales (Attributed)": sales_df,
-        "3. 📢 Campaign Summary": camp_sum,
+        "3. 📢 Campaign Summary": camp_sum_excel,
         "4. 🎯 Ad Set Summary": adset_sum,
-        "5. 🎨 Ad Creative Summary": ad_sum,
-        "6. 📍 Placement Summary": placement_sum,
-        "7. 🏦 Ad Account Comparison": ad_account_comp,
-        "8. 🚨 Zero-ROI Waste Report": zero_roi
+        "5. 🎨 Ad Creative Summary": ad_sum
     }
     
     # --- PHASE 1 RECONCILIATION PRINT ---
@@ -394,11 +404,11 @@ def run_pipeline(
     print(f"Attributed Spend: {metrics['attributed_spend']}")
     print(f"Unallocated Spend: {metrics['unallocated_spend']}")
     print("-" * 50)
-    print(f"Campaign Sales: {camp_sum['Total Sales'].sum() if not camp_sum.empty else 0}")
+    print(f"Campaign Sales: {camp_sum['Sales'].sum() if not camp_sum.empty else 0}")
     print(f"Ad Set Sales: {adset_sum['Sales'].sum() if not adset_sum.empty else 0}")
     print(f"Ad Creative Sales: {ad_sum['Sales'].sum() if not ad_sum.empty else 0}")
     print("-" * 50)
-    print(f"Campaign Revenue: {camp_sum['Total Revenue'].sum() if not camp_sum.empty else 0}")
+    print(f"Campaign Revenue: {camp_sum['Revenue'].sum() if not camp_sum.empty else 0}")
     print(f"Ad Set Revenue: {adset_sum['Revenue'].sum() if not adset_sum.empty else 0}")
     print(f"Ad Creative Revenue: {ad_sum['Revenue'].sum() if not ad_sum.empty else 0}")
     print("-" * 50)

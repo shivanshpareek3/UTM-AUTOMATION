@@ -64,19 +64,19 @@ def test_excel_column_alignment(tmp_path):
     ws_camp = wb["3. 📢 Campaign Summary"]
     headers = [cell.value for cell in ws_camp[1]]
     
-    expected_headers = ['Campaign Name', 'Total Leads', 'Total Sales', 'Attributed Sales', 'Total Revenue', 'Raw Meta Spend', 'Spend / Cost', 'CPL', 'CAC', 'ROAS', 'ROI', 'Conversion Rate', 'Profit', 'Price Per Sale', 'Funnel Type']
+    expected_headers = ['Campaign Name', 'Ad Account', 'Total Leads', 'Total Sales', 'Attributed Sales', 'Spend / Meta Spend', 'CPL', 'CAC', 'Revenue', 'Profit', 'ROAS', 'ROI', 'Conversion Rate', 'Price Per Sale', 'Funnel Type']
     
     assert headers == expected_headers, f"Headers did not match exactly: {headers}"
     
     # Check that the data values under 'Campaign Name' are indeed campaign names
     camp_idx = headers.index('Campaign Name')
-    val = ws_camp.cell(row=2, column=camp_idx+1).value
-    assert "camp" in str(val), f"Expected campaign name, got {val}"
+    val1 = ws_camp.cell(row=2, column=camp_idx+1).value
+    assert 'camp' in str(val1).lower(), f"Expected campaign name, got {val1}"
     
-    # Check that 'Price Per Sale' has the expected 8999.0 value
+    # Check that 'Price Per Sale' has the expected 150 value (300 / 2)
     price_idx = headers.index('Price Per Sale')
     val_price = ws_camp.cell(row=2, column=price_idx+1).value
-    assert val_price == 8999.0, f"Expected 8999.0 under Price Per Sale, got {val_price}"
+    assert val_price == 150, f"Expected 150 under Price Per Sale, got {val_price}"
     
     # Check All Sales sheet to ensure 'name' and 'phone' map correctly
     ws_sales = wb["2. 📋 All Sales (Attributed)"]

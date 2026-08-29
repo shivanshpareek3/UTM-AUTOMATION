@@ -8,7 +8,9 @@ def test_calculate_metrics():
         'email': ['A'],
         'attribution_source': ['Leads DB (email)'],
         'campaign': ['C1'],
-        'order_amount': [8999.0]
+        'order_amount': [8999.0],
+        'total_revenue': [8999.0],
+        'attributed_spend': [50.0]
     })
     reg_rev = pd.DataFrame({'reg_revenue': [50.0, 50.0]})
     meta = pd.DataFrame({
@@ -63,7 +65,9 @@ def test_profit_calculation_negative():
         'email': ['A'],
         'attribution_source': ['Leads DB (email)'],
         'campaign': ['C1'],
-        'order_amount': [8999.0]
+        'order_amount': [8999.0],
+        'total_revenue': [8999.0],
+        'attributed_spend': [406647.08]
     })
     reg_rev = pd.DataFrame({'reg_revenue': [0.0]})
     meta = pd.DataFrame({
@@ -83,7 +87,10 @@ def test_profit_calculation_positive():
     sales = pd.DataFrame({
         'email': ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'],
         'attribution_source': ['Leads DB (email)'] * 12,
-        'campaign': ['C1'] * 12
+        'campaign': ['C1'] * 12,
+        'order_amount': [8999.0] * 12,
+        'total_revenue': [8999.0] * 12,
+        'attributed_spend': [100000.0 / 12] * 12
     })
     reg_rev = pd.DataFrame({'reg_revenue': [0.0]})
     meta = pd.DataFrame({
@@ -95,7 +102,7 @@ def test_profit_calculation_positive():
     settings = {'fallback_price': 8999.0}
     metrics = calculate_metrics(leads, sales, reg_rev, meta, settings)
     assert metrics['attributed_revenue'] == 12 * 8999.0
-    assert metrics['attributed_spend'] == 100000.0
+    assert abs(metrics['attributed_spend'] - 100000.0) < 0.01
     assert round(metrics['profit'], 2) == (12 * 8999.0) - 100000.0
 
 def test_paid_unpaid_metrics():

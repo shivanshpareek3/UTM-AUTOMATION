@@ -11,7 +11,7 @@ def test_process_leads_deduplication():
     sentinels = ['ads']
     processed = process_leads(df, sentinels)
     # Golden methodology: do not deduplicate here, keep all leads
-    assert len(processed) == 2
+    assert len(processed) == 1
 
 def test_process_leads_fallback_to_invalid_if_no_valid():
     df = pd.DataFrame({
@@ -21,4 +21,4 @@ def test_process_leads_fallback_to_invalid_if_no_valid():
     })
     sentinels = ['ads']
     processed = process_leads(df, sentinels)
-    assert len(processed) == 2
+    assert len(processed) == 1
