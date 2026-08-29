@@ -16,8 +16,8 @@ st.set_page_config(page_title="UTM Sales Attribution Generator", layout="wide")
 st.title("🚀 UTM Sales Attribution & Profitability Report Generator")
 
 # State initialization
-if 'reset' not in st.session_state:
-    st.session_state.reset = False
+if 'reset_key' not in st.session_state:
+    st.session_state.reset_key = 0
 
 # Session state init for prices to maintain state across type changes
 if 'fallback_price' not in st.session_state:
@@ -67,14 +67,17 @@ st.header("1. Upload Files")
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    leads_file = st.file_uploader("Leads File (CSV/XLSX)", type=['csv', 'xlsx'], key='leads')
+    leads_file = st.file_uploader("Leads File (CSV/XLSX)", type=['csv', 'xlsx'], key=f'leads_{st.session_state.reset_key}')
 with col2:
-    sales_file = st.file_uploader("Sales File (CSV/XLSX)", type=['csv', 'xlsx'], key='sales')
+    sales_file = st.file_uploader("Sales File (CSV/XLSX)", type=['csv', 'xlsx'], key=f'sales_{st.session_state.reset_key}')
 with col3:
-    meta_files = st.file_uploader("Meta Spend Files (CSV/XLSX)", type=['csv', 'xlsx'], accept_multiple_files=True, key='meta')
+    meta_files = st.file_uploader("Meta Spend Files (CSV/XLSX)", type=['csv', 'xlsx'], accept_multiple_files=True, key=f'meta_{st.session_state.reset_key}')
 
 if st.button("🔄 Reset / Clear"):
+    # Preserve reset_key so we can increment it
+    current_reset = st.session_state.reset_key
     st.session_state.clear()
+    st.session_state.reset_key = current_reset + 1
     st.rerun()
 
 def load_df(uploaded_file):
@@ -101,10 +104,11 @@ if leads_file and sales_file and meta_files:
     # ---------------------------------------------------------
     # STATE MANAGEMENT FOR FILE CHANGES
     # ---------------------------------------------------------
+    # Use name and size instead of file_id because Streamlit frequently regenerates file_id on button clicks
     current_file_ids = (
-        getattr(leads_file, "file_id", "none"),
-        getattr(sales_file, "file_id", "none"),
-        tuple(getattr(m, "file_id", "none") for m in meta_files) if meta_files else ()
+        getattr(leads_file, "name", "none") + str(getattr(leads_file, "size", 0)),
+        getattr(sales_file, "name", "none") + str(getattr(sales_file, "size", 0)),
+        tuple(getattr(m, "name", "none") + str(getattr(m, "size", 0)) for m in meta_files) if meta_files else ()
     )
     
     if "last_file_ids" not in st.session_state or st.session_state.last_file_ids != current_file_ids:
