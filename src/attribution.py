@@ -100,13 +100,24 @@ def attribute_sales(sales_df: pd.DataFrame, leads_df: pd.DataFrame, sentinels: L
     
     def has_valid_utm_row(row):
         for col in ['campaign', 'ad_set', 'ad_creative']:
-            if col in row and pd.notna(row[col]):
-                val = str(row[col]).lower().strip()
-                if val not in sentinels_lower and not val.isnumeric():
-                    return True
+            if col in row:
+                val = row[col]
+                # Handle duplicate columns by taking the first one
+                if isinstance(val, pd.Series):
+                    val = val.iloc[0]
+                if pd.notna(val):
+                    val = str(val).lower().strip()
+                    if val not in sentinels_lower and not val.isnumeric():
+                        return True
         return False
 
     def determine_attribution(row) -> Dict:
+        # Helper to extract cleanly if there are duplicates
+        def extract_val(obj, key):
+            val = obj.get(key)
+            if isinstance(val, pd.Series): return val.iloc[0]
+            return val
+            
         # Priority 1: Sales Sheet UTM
         if has_valid_utm_row(row):
             return {
@@ -118,28 +129,34 @@ def attribute_sales(sales_df: pd.DataFrame, leads_df: pd.DataFrame, sentinels: L
             
         # Priority 2: Leads DB by Email
         email = row.get('email')
+        if isinstance(email, pd.Series):
+            email = email.iloc[0]
+            
         if pd.notna(email) and not leads_by_email.empty and email in leads_by_email.index:
             lead = leads_by_email.loc[email]
             # Handle case where multiple leads might somehow exist despite deduplication
             if isinstance(lead, pd.DataFrame):
                 lead = lead.iloc[0]
             return {
-                'campaign': lead.get('campaign'),
-                'ad_set': lead.get('ad_set'),
-                'ad_creative': lead.get('ad_creative'),
+                'campaign': extract_val(lead, 'campaign'),
+                'ad_set': extract_val(lead, 'ad_set'),
+                'ad_creative': extract_val(lead, 'ad_creative'),
                 'attribution_source': 'Leads DB (email)'
             }
             
         # Priority 3: Leads DB by Phone
         phone = row.get('phone')
+        if isinstance(phone, pd.Series):
+            phone = phone.iloc[0]
+            
         if pd.notna(phone) and not leads_by_phone.empty and phone in leads_by_phone.index:
             lead = leads_by_phone.loc[phone]
             if isinstance(lead, pd.DataFrame):
                 lead = lead.iloc[0]
             return {
-                'campaign': lead.get('campaign'),
-                'ad_set': lead.get('ad_set'),
-                'ad_creative': lead.get('ad_creative'),
+                'campaign': extract_val(lead, 'campaign'),
+                'ad_set': extract_val(lead, 'ad_set'),
+                'ad_creative': extract_val(lead, 'ad_creative'),
                 'attribution_source': 'Leads DB (phone)'
             }
             
@@ -150,20 +167,23 @@ def attribute_sales(sales_df: pd.DataFrame, leads_df: pd.DataFrame, sentinels: L
             if isinstance(lead, pd.DataFrame):
                 lead = lead.iloc[0]
             return {
-                'campaign': lead.get('campaign'),
-                'ad_set': lead.get('ad_set'),
-                'ad_creative': lead.get('ad_creative'),
+                'campaign': extract_val(lead, 'campaign'),
+                'ad_set': extract_val(lead, 'ad_set'),
+                'ad_creative': extract_val(lead, 'ad_creative'),
                 'attribution_source': 'Leads DB (fuzzy email)'
             }
             
         # Priority 5: Fuzzy Name Match (>0.95)
         name = row.get('name')
+        if isinstance(name, pd.Series):
+            name = name.iloc[0]
+            
         if pd.notna(name) and name in name_fuzzy_map:
             lead = name_fuzzy_map[name]
             return {
-                'campaign': lead.get('campaign'),
-                'ad_set': lead.get('ad_set'),
-                'ad_creative': lead.get('ad_creative'),
+                'campaign': extract_val(lead, 'campaign'),
+                'ad_set': extract_val(lead, 'ad_set'),
+                'ad_creative': extract_val(lead, 'ad_creative'),
                 'attribution_source': 'Leads DB (fuzzy name)'
             }
             
@@ -184,13 +204,18 @@ def attribute_sales(sales_df: pd.DataFrame, leads_df: pd.DataFrame, sentinels: L
         
     # Determine Match Level
     def get_match_level(row):
+        def is_valid(key):
+            val = row.get(key)
+            if isinstance(val, pd.Series): return pd.notna(val.iloc[0])
+            return pd.notna(val)
+            
         if row['attribution_source'] == 'Unattributed':
             return 'Unattributed'
-        if pd.notna(row['campaign']) and pd.notna(row['ad_set']) and pd.notna(row['ad_creative']):
+        if is_valid('campaign') and is_valid('ad_set') and is_valid('ad_creative'):
             return 'Ad Level'
-        if pd.notna(row['campaign']) and pd.notna(row['ad_set']):
+        if is_valid('campaign') and is_valid('ad_set'):
             return 'Adset Level'
-        if pd.notna(row['campaign']):
+        if is_valid('campaign'):
             return 'Campaign Level'
         return 'Unattributed'
         
