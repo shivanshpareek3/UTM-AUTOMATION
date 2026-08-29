@@ -80,19 +80,21 @@ if st.button("🔄 Reset / Clear"):
     st.session_state.reset_key = current_reset + 1
     st.rerun()
 
-def load_df(uploaded_file):
-    if uploaded_file is None:
+@st.cache_data(show_spinner=False)
+def load_df(file_name, file_size, file_bytes):
+    import io
+    if not file_bytes:
         return None
     try:
-        return read_stream(uploaded_file, uploaded_file.name)
+        return read_stream(io.BytesIO(file_bytes), file_name)
     except Exception as e:
-        st.error(f"Error reading {uploaded_file.name}: {str(e)}")
+        st.error(f"Error reading {file_name}: {str(e)}")
         return None
 
 if leads_file and sales_file and meta_files:
-    leads_df = load_df(leads_file)
-    sales_df = load_df(sales_file)
-    meta_dfs = [load_df(f) for f in meta_files if f is not None]
+    leads_df = load_df(leads_file.name, leads_file.size, leads_file.getvalue())
+    sales_df = load_df(sales_file.name, sales_file.size, sales_file.getvalue())
+    meta_dfs = [load_df(f.name, f.size, f.getvalue()) for f in meta_files if f is not None]
     
     meta_df = pd.concat(meta_dfs, ignore_index=True) if meta_dfs else pd.DataFrame()
         
