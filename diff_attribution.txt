@@ -1,0 +1,162 @@
+--- /Users/apple/.gemini/antigravity-ide/brain/410268c6-d147-4d6b-bce4-fa6143cf9f9a/scratch/attribution_554e4f7.py	2026-08-29 10:49:59
++++ src/attribution.py	2026-08-29 16:57:31
+@@ -29,10 +29,18 @@
+         leads_by_phone = pd.DataFrame()
+         leads_valid = pd.DataFrame()
+         
++    def get_unique(data_df, col):
++        if col not in data_df.columns:
++            return []
++        c = data_df[col]
++        if isinstance(c, pd.DataFrame):
++            c = c.iloc[:, 0]
++        return c.dropna().unique()
++
+     # Pre-compute fuzzy mapping for sales that don't exact match
+     email_fuzzy_map = {}
+-    sales_emails = df['email'].dropna().unique() if 'email' in df.columns else []
+-    lead_emails = leads_valid['email'].dropna().unique() if 'email' in leads_valid.columns else []
++    sales_emails = get_unique(df, 'email')
++    lead_emails = get_unique(leads_valid, 'email')
+     
+     lead_emails_by_len = {}
+     for le in lead_emails:
+@@ -60,7 +68,7 @@
+             
+     name_fuzzy_map = {}
+     if 'name' in df.columns and 'first_name' in leads_valid.columns:
+-        sales_names = df['name'].dropna().unique()
++        sales_names = get_unique(df, 'name')
+         
+         lead_names_by_len = {}
+         for idx, lead in leads_valid.iterrows():
+@@ -92,46 +100,63 @@
+     
+     def has_valid_utm_row(row):
+         for col in ['campaign', 'ad_set', 'ad_creative']:
+-            if col in row and pd.notna(row[col]):
+-                val = str(row[col]).lower().strip()
+-                if val not in sentinels_lower and not val.isnumeric():
+-                    return True
++            if col in row:
++                val = row[col]
++                # Handle duplicate columns by taking the first one
++                if isinstance(val, pd.Series):
++                    val = val.iloc[0]
++                if pd.notna(val):
++                    val = str(val).lower().strip()
++                    if val and val not in sentinels_lower and not val.isnumeric():
++                        return True
+         return False
+ 
+     def determine_attribution(row) -> Dict:
++        # Helper to extract cleanly if there are duplicates
++        def extract_val(obj, key):
++            val = obj.get(key)
++            if isinstance(val, pd.Series): return val.iloc[0]
++            return val
++            
+         # Priority 1: Sales Sheet UTM
+         if has_valid_utm_row(row):
+             return {
+-                'campaign': row.get('campaign'),
+-                'ad_set': row.get('ad_set'),
+-                'ad_creative': row.get('ad_creative'),
++                'campaign': extract_val(row, 'campaign'),
++                'ad_set': extract_val(row, 'ad_set'),
++                'ad_creative': extract_val(row, 'ad_creative'),
+                 'attribution_source': 'Sales Sheet UTM'
+             }
+             
+         # Priority 2: Leads DB by Email
+         email = row.get('email')
++        if isinstance(email, pd.Series):
++            email = email.iloc[0]
++            
+         if pd.notna(email) and not leads_by_email.empty and email in leads_by_email.index:
+             lead = leads_by_email.loc[email]
+             # Handle case where multiple leads might somehow exist despite deduplication
+             if isinstance(lead, pd.DataFrame):
+                 lead = lead.iloc[0]
+             return {
+-                'campaign': lead.get('campaign'),
+-                'ad_set': lead.get('ad_set'),
+-                'ad_creative': lead.get('ad_creative'),
++                'campaign': extract_val(lead, 'campaign'),
++                'ad_set': extract_val(lead, 'ad_set'),
++                'ad_creative': extract_val(lead, 'ad_creative'),
+                 'attribution_source': 'Leads DB (email)'
+             }
+             
+         # Priority 3: Leads DB by Phone
+         phone = row.get('phone')
++        if isinstance(phone, pd.Series):
++            phone = phone.iloc[0]
++            
+         if pd.notna(phone) and not leads_by_phone.empty and phone in leads_by_phone.index:
+             lead = leads_by_phone.loc[phone]
+             if isinstance(lead, pd.DataFrame):
+                 lead = lead.iloc[0]
+             return {
+-                'campaign': lead.get('campaign'),
+-                'ad_set': lead.get('ad_set'),
+-                'ad_creative': lead.get('ad_creative'),
++                'campaign': extract_val(lead, 'campaign'),
++                'ad_set': extract_val(lead, 'ad_set'),
++                'ad_creative': extract_val(lead, 'ad_creative'),
+                 'attribution_source': 'Leads DB (phone)'
+             }
+             
+@@ -142,20 +167,23 @@
+             if isinstance(lead, pd.DataFrame):
+                 lead = lead.iloc[0]
+             return {
+-                'campaign': lead.get('campaign'),
+-                'ad_set': lead.get('ad_set'),
+-                'ad_creative': lead.get('ad_creative'),
++                'campaign': extract_val(lead, 'campaign'),
++                'ad_set': extract_val(lead, 'ad_set'),
++                'ad_creative': extract_val(lead, 'ad_creative'),
+                 'attribution_source': 'Leads DB (fuzzy email)'
+             }
+             
+         # Priority 5: Fuzzy Name Match (>0.95)
+         name = row.get('name')
++        if isinstance(name, pd.Series):
++            name = name.iloc[0]
++            
+         if pd.notna(name) and name in name_fuzzy_map:
+             lead = name_fuzzy_map[name]
+             return {
+-                'campaign': lead.get('campaign'),
+-                'ad_set': lead.get('ad_set'),
+-                'ad_creative': lead.get('ad_creative'),
++                'campaign': extract_val(lead, 'campaign'),
++                'ad_set': extract_val(lead, 'ad_set'),
++                'ad_creative': extract_val(lead, 'ad_creative'),
+                 'attribution_source': 'Leads DB (fuzzy name)'
+             }
+             
+@@ -176,13 +204,19 @@
+         
+     # Determine Match Level
+     def get_match_level(row):
++        def is_valid(key):
++            val = row.get(key)
++            if isinstance(val, pd.Series): val = val.iloc[0]
++            if pd.isna(val): return False
++            return str(val).strip() != ""
++            
+         if row['attribution_source'] == 'Unattributed':
+             return 'Unattributed'
+-        if pd.notna(row['campaign']) and pd.notna(row['ad_set']) and pd.notna(row['ad_creative']):
++        if is_valid('campaign') and is_valid('ad_set') and is_valid('ad_creative'):
+             return 'Ad Level'
+-        if pd.notna(row['campaign']) and pd.notna(row['ad_set']):
++        if is_valid('campaign') and is_valid('ad_set'):
+             return 'Adset Level'
+-        if pd.notna(row['campaign']):
++        if is_valid('campaign'):
+             return 'Campaign Level'
+         return 'Unattributed'
+         

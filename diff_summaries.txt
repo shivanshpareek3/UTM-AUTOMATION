@@ -1,0 +1,29 @@
+--- /Users/apple/.gemini/antigravity-ide/brain/410268c6-d147-4d6b-bce4-fa6143cf9f9a/scratch/summaries_554e4f7.py	2026-08-29 10:49:59
++++ src/summaries.py	2026-08-29 10:50:33
+@@ -8,7 +8,7 @@
+             return pd.DataFrame(columns=level_cols + ['Spend', 'Leads', 'CPL', 'Sales', 'Conversion Rate %', 'Revenue', 'Profit', 'ROAS', 'ROI %', 'CAC', 'Profitable?'])
+             
+         if spend_df.empty:
+-            spend_df = pd.DataFrame(columns=level_cols + ['Amount Spent'])
++            spend_df = pd.DataFrame(columns=level_cols + ['spend'])
+         
+         # Aggregate sales metrics
+         # Only include sales that have valid matching at this level or below
+@@ -56,7 +56,7 @@
+         
+         # Replace NaN with 0
+         res = res.fillna({
+-            'Amount Spent': 0.0, 'Sales': 0, 'Revenue': 0.0, 'Attributed_Spend': 0.0, 'Profit': 0.0, 'Leads': 0, 'reg_revenue': 0.0
++            'spend': 0.0, 'Sales': 0, 'Revenue': 0.0, 'Attributed_Spend': 0.0, 'Profit': 0.0, 'Leads': 0, 'reg_revenue': 0.0
+         })
+         
+         # Add standalone registration revenue to total Revenue
+@@ -66,7 +66,7 @@
+         res['Profit'] = res['Revenue'] - res['Attributed_Spend']
+         
+         # Rename spend column
+-        res = res.rename(columns={'Amount Spent': 'Spend'})
++        res = res.rename(columns={'spend': 'Spend'})
+         
+         # Calculate rates
+         # Calculate rates

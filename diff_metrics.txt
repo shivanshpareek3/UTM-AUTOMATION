@@ -1,0 +1,13 @@
+--- /Users/apple/.gemini/antigravity-ide/brain/410268c6-d147-4d6b-bce4-fa6143cf9f9a/scratch/metrics_554e4f7.py	2026-08-29 10:49:59
++++ src/metrics.py	2026-08-29 10:50:33
+@@ -21,8 +21,8 @@
+     total_revenue = backend_revenue + total_reg_revenue
+     
+     if not meta_df.empty:
+-        if 'Amount Spent' in meta_df.columns:
+-            raw_meta_spend = meta_df['Amount Spent'].sum()
++        if 'spend' in meta_df.columns:
++            raw_meta_spend = meta_df['spend'].sum()
+         elif 'spend' in meta_df.columns:
+             raw_meta_spend = meta_df['spend'].sum()
+         else:
