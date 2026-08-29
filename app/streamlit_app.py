@@ -500,6 +500,40 @@ if leads_file and sales_file and meta_files:
                 
                 if metrics.get('attributed_spend', 0) == 0:
                     st.warning(f"₹0 — No Meta spend was attributable within the selected period.")
+                    
+                with st.expander("🔍 RUNTIME DEBUG TRACE (Requested)", expanded=True):
+                    st.markdown("### 1. Raw Engine Outputs")
+                    st.json({
+                        "Total Sales": metrics.get('total_sales'),
+                        "Attributed Sales": metrics.get('attributed_sales'),
+                        "Unattributed Sales": metrics.get('unattributed_sales'),
+                        "Total Revenue": metrics.get('total_revenue'),
+                        "Attributed Revenue": metrics.get('attributed_revenue'),
+                        "Registration Amount": metrics.get('total_reg_revenue'),
+                        "Raw Meta Spend": metrics.get('raw_meta_spend'),
+                        "Attributed Spend": metrics.get('attributed_spend'),
+                        "Unallocated Spend": metrics.get('unallocated_spend'),
+                        "Profit": metrics.get('profit'),
+                        "ROAS": metrics.get('roas'),
+                        "ROI %": metrics.get('roi_percent'),
+                        "CAC": metrics.get('cac'),
+                        "CPL": metrics.get('cpl')
+                    })
+                    
+                    st.markdown("### 2. Campaign Normalization Check")
+                    try:
+                        sales_camps = sorted(list(sales_df['camp_norm'].dropna().unique())) if 'camp_norm' in sales_df.columns else "camp_norm column missing"
+                        meta_camps = sorted(list(meta_df['camp_norm'].dropna().unique())) if ('camp_norm' in meta_df.columns) else "camp_norm column missing"
+                        
+                        st.write("**Sales Normalized Campaigns (camp_norm):**")
+                        st.code(sales_camps)
+                        
+                        st.write("**Meta Normalized Campaigns (camp_norm):**")
+                        st.code(meta_camps)
+                        
+                        st.info("If Attributed Spend is 0, it means NONE of the strings in the Sales list matched ANY of the strings in the Meta list.")
+                    except Exception as e:
+                        st.error(f"Could not render campaign names: {e}")
                 
                 st.markdown("#### SECTION 4: FINANCIAL PERFORMANCE")
                 mf1, mf2, mf3, mf4 = st.columns(4)
