@@ -27,13 +27,10 @@ def allocate_spend(sales_df: pd.DataFrame, meta_df: pd.DataFrame, start_date: st
             sales_df['attributed_spend'] = 0.0
         return sales_df, pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
         
-    # Ensure dates are datetime
-    meta_df['Day'] = pd.to_datetime(meta_df['Day'], errors='coerce')
-    start_dt = pd.to_datetime(start_date)
-    end_dt = pd.to_datetime(end_date)
-    
-    # Filter by window
-    window_meta = meta_df[(meta_df['Day'] >= start_dt) & (meta_df['Day'] <= end_dt)].copy()
+    # meta_df is already correctly filtered for the reporting window in pipeline.py
+    # using robust date range parsing (e.g., handling 'Reporting starts' / 'Reporting ends').
+    # We do not filter it again here to avoid dropping valid overlapping data due to NaT coercion.
+    window_meta = meta_df.copy()
     
     # Normalize Meta names for joining
             
