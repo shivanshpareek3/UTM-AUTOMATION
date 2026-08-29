@@ -503,7 +503,9 @@ if leads_file and sales_file and meta_files:
                 
                 st.markdown("#### SECTION 4: FINANCIAL PERFORMANCE")
                 mf1, mf2, mf3, mf4 = st.columns(4)
-                mf1.metric("Profit", f"{currency} {metrics.get('profit', 0):,.2f}")
+                profit_val = metrics.get('profit', 0)
+                profit_label = "Profit" if profit_val >= 0 else "Loss"
+                mf1.metric(profit_label, f"{currency} {abs(profit_val):,.2f}")
                 mf2.metric("ROAS", f"{metrics.get('roas', 0):.2f}x" if metrics.get('roas') != "N/A" else "N/A")
                 mf3.metric("ROI %", f"{metrics.get('roi_percent', 0):.1f}%" if metrics.get('roi_percent') != "N/A" else "N/A")
                 mf4.metric("CAC", f"{currency} {metrics.get('cac', 0):,.2f}" if metrics.get('cac') != "N/A" else "N/A")
