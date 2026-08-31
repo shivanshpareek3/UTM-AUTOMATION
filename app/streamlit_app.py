@@ -64,14 +64,16 @@ settings = {
 # Main Layout
 st.header("1. Upload Files")
 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     leads_file = st.file_uploader("Leads File (CSV/XLSX)", type=['csv', 'xlsx'], key=f'leads_{st.session_state.reset_key}')
 with col2:
     sales_file = st.file_uploader("Sales File (CSV/XLSX)", type=['csv', 'xlsx'], key=f'sales_{st.session_state.reset_key}')
 with col3:
-    meta_files = st.file_uploader("Meta Spend Files (CSV/XLSX)", type=['csv', 'xlsx'], accept_multiple_files=True, key=f'meta_{st.session_state.reset_key}')
+    meta_file1 = st.file_uploader("Meta Report 1 (Required)", type=['csv', 'xlsx'], key=f'meta1_{st.session_state.reset_key}')
+with col4:
+    meta_file2 = st.file_uploader("Meta Report 2 (Optional)", type=['csv', 'xlsx'], key=f'meta2_{st.session_state.reset_key}', disabled=(meta_file1 is None))
 
 if st.button("🔄 Reset / Clear"):
     # Preserve reset_key so we can increment it
@@ -91,9 +93,14 @@ def load_df(file_name, file_size, file_bytes):
         st.error(f"Error reading {file_name}: {str(e)}")
         return None
 
-if leads_file and sales_file and meta_files:
+if leads_file and sales_file and meta_file1:
     leads_df = load_df(leads_file.name, leads_file.size, leads_file.getvalue())
     sales_df = load_df(sales_file.name, sales_file.size, sales_file.getvalue())
+    
+    meta_files = [meta_file1]
+    if meta_file2:
+        meta_files.append(meta_file2)
+        
     meta_dfs = [load_df(f.name, f.size, f.getvalue()) for f in meta_files if f is not None]
     
     meta_df = pd.concat(meta_dfs, ignore_index=True) if meta_dfs else pd.DataFrame()
@@ -236,6 +243,13 @@ if leads_file and sales_file and meta_files:
     if meta_dfs:
         for i in range(len(meta_dfs)):
             inv_meta = {v: ('Day' if k == 'Date' else k) for k, v in mapping_dict['meta'][i].items()}
+            
+            # If we are mapping some column (e.g. 'Reporting starts') to 'Day', and 'Day' natively exists
+            if 'Date' in inv_meta.values():
+                mapped_col_for_date = [k for k, v in inv_meta.items() if v == 'Day'][0]
+                if mapped_col_for_date != 'Day' and 'Day' in meta_dfs[i].columns:
+                    meta_dfs[i] = meta_dfs[i].drop(columns=['Day'])
+                    
             meta_dfs[i].rename(columns=inv_meta, inplace=True)
             
     meta_df = pd.concat(meta_dfs, ignore_index=True) if len(meta_dfs) > 1 else meta_dfs[0]
