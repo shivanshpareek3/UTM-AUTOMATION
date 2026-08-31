@@ -189,8 +189,8 @@ def run_pipeline(
     if not meta_df.empty and 'spend' not in meta_df.columns:
         raise KeyError(f"'spend' is MISSING before allocate_spend. Columns: {list(meta_df.columns)}")
         
-    sales_df, camp_spend, adset_spend, ad_spend = allocate_spend(
-        sales_df, meta_df, meta_start, meta_end
+    camp_spend, adset_spend, ad_spend = allocate_spend(
+        leads_df, meta_df, meta_start, meta_end
     )
     
     # 6. Funnel Logic (Free/Paid, Old/New)
@@ -321,8 +321,8 @@ def run_pipeline(
         {'Setting': 'Unpaid Leads', 'Value': metrics['unpaid_leads']},
         {'Setting': 'Paid Funnel %', 'Value': metrics['paid_funnel_percent']},
         {'Setting': 'Unpaid Funnel %', 'Value': metrics['unpaid_funnel_percent']},
-        {'Setting': 'Attributed Leads', 'Value': metrics['attributed_leads']},
-        {'Setting': 'Unattributed Leads', 'Value': metrics['unattributed_leads']},
+        {'Setting': 'Sales (Matched to Lead)', 'Value': metrics.get('sales_matched_to_lead', 0)},
+        {'Setting': 'Sales (Campaign-Attributed)', 'Value': metrics.get('sales_matched_to_campaign', 0)},
         {'Setting': 'Total Sales', 'Value': metrics['total_sales']},
         {'Setting': 'Attributed Sales', 'Value': metrics['attributed_sales']},
         {'Setting': 'Unattributed Sales', 'Value': metrics['unattributed_sales']},
@@ -386,39 +386,34 @@ def run_pipeline(
     
     # --- PHASE 1 RECONCILIATION PRINT ---
     print("\n" + "="*50)
-    print("PHASE 1 — AUDIT / RECONCILIATION TABLE")
+    print("FINAL ACCEPTANCE RECONCILIATION TABLE")
     print("="*50)
-    print(f"Raw Sales Rows: {input_sales_count}")
-    print(f"Valid Sales (Included): {len(sales_df)}")
-    print(f"Excluded Refund/Failed/Missing: {len(excluded_sales)}")
-    print(f"Unresolved Date Sales: {len(sales_df[sales_df['sale_date_source'] == 'unresolved']) if 'sale_date_source' in sales_df.columns else 0}")
-    print(f"Attributed Sales: {metrics['attributed_sales']}")
-    print(f"Unattributed Sales: {metrics['unattributed_sales']}")
-    print("-" * 50)
-    print(f"Raw Revenue: {sales_df['order_amount'].sum() if 'order_amount' in sales_df.columns else 0.0}")
-    print(f"Final Revenue: {metrics['total_revenue']}")
-    print(f"Paid Registration Revenue: {metrics['total_reg_revenue']}")
-    print(f"Backend Revenue: {metrics['backend_revenue']}")
-    print("-" * 50)
-    print(f"Raw Meta Spend: {metrics['raw_meta_spend']}")
-    print(f"Attributed Spend: {metrics['attributed_spend']}")
-    print(f"Unallocated Spend: {metrics['unallocated_spend']}")
-    print("-" * 50)
-    print(f"Campaign Sales: {camp_sum['Sales'].sum() if not camp_sum.empty else 0}")
-    print(f"Ad Set Sales: {adset_sum['Sales'].sum() if not adset_sum.empty else 0}")
-    print(f"Ad Creative Sales: {ad_sum['Sales'].sum() if not ad_sum.empty else 0}")
-    print("-" * 50)
-    print(f"Campaign Revenue: {camp_sum['Revenue'].sum() if not camp_sum.empty else 0}")
-    print(f"Ad Set Revenue: {adset_sum['Revenue'].sum() if not adset_sum.empty else 0}")
-    print(f"Ad Creative Revenue: {ad_sum['Revenue'].sum() if not ad_sum.empty else 0}")
-    print("-" * 50)
-    print(f"Profit: {metrics['profit']}")
-    print(f"ROAS: {metrics['roas']}")
-    print(f"ROI: {metrics['roi_percent']}")
-    print(f"CPL: {metrics['cpl']}")
-    print(f"CAC: {metrics['cac']}")
-    print(f"Conversion Rate: {metrics['conversion_rate_percent']}")
-    print("="*50 + "\n")
+    
+    # Format currency
+    def fmt_cur(val):
+        if pd.isna(val) or val == "N/A": return "N/A"
+        return f"₹{val:,.2f}"
+        
+    print(f"{'METRIC':<35} | {'AUTOMATION':<15} | {'CLAUDE GOLDEN'}")
+    print("-" * 75)
+    print(f"{'Total Meta Ad Spend':<35} | {fmt_cur(metrics['raw_meta_spend']):<15} | ₹486,068.46")
+    print(f"{'Total Leads':<35} | {metrics['total_leads']:<15} | 3,605")
+    print(f"{'Total Sales (Matched to Lead)':<35} | {metrics['sales_matched_to_lead']:<15} | 31")
+    print(f"{'Total Sales (Campaign-Attributed)':<35} | {metrics['sales_matched_to_campaign']:<15} | 29")
+    print(f"{'Total Sales Revenue (Matched)':<35} | {fmt_cur(metrics['total_revenue']):<15} | ₹278,969.00")
+    
+    roas_val = metrics['roas']
+    roas_str = f"{roas_val:.2f}" if isinstance(roas_val, (int, float)) else str(roas_val)
+    print(f"{'Blended ROAS':<35} | {roas_str:<15} | 0.57")
+    
+    print(f"{'CPL':<35} | {fmt_cur(metrics['cpl']):<15} | ₹134.83") # Note: Claude 3605 gives 486068.46/3605 = 134.83
+    print(f"{'CAC':<35} | {fmt_cur(metrics['cac']):<15} | ₹15,679.63")
+    
+    cvr_val = metrics['conversion_rate_percent']
+    cvr_str = f"{cvr_val:.2f}%" if isinstance(cvr_val, (int, float)) else str(cvr_val)
+    print(f"{'Conversion Rate':<35} | {cvr_str:<15} | 0.86%")
+    
+    print("="*75 + "\n")
     
     generate_workbook(output_filepath, workbook_data)
     

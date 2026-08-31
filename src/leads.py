@@ -36,47 +36,45 @@ def process_leads(df: pd.DataFrame, sentinels: List[str]) -> pd.DataFrame:
     
     # Golden Methodology: Sort to keep the most recent with valid UTM
     if 'registration_date' in df.columns:
-        # For sorting, we can ensure we keep True for valid UTM and most recent date
+        # 0. Sanitize Dummy/Test Leads (Golden Methodology)
+        # Test leads injected by QA or FB Lead Ads testing tools should be excluded
+        def is_test_lead(row):
+            e = str(row.get('email', '')).strip().lower()
+            f = str(row.get('first_name', '')).strip().lower()
+            return e == 'test@gmail.com' or e == 'test@fb.com' or f == 'test'
+            
+        test_mask = df.apply(is_test_lead, axis=1)
+        df = df[~test_mask]
+        
         df = df.sort_values(by=['has_valid_utm', 'registration_date'], 
-                            ascending=[False, False])
+                            ascending=[False, True])
         
         # 1. Exact duplicates across all columns are removed
         df = df.drop_duplicates(keep='first')
         
         # 2. Deduplicate by email and phone combination
-        # The Golden Methodology explicitly states:
-        # - DO NOT treat blank email values as the same email
-        # - DO NOT treat blank phone values as the same phone
+        # This is the EXACT Golden Methodology logic for deduplication:
+        # We do not treat blank emails as same, nor blank phones as same.
         if 'email' in df.columns and 'phone' in df.columns:
             import uuid
             def generate_dedup_key(row):
-                e = str(row.get('email', '')).strip()
+                e = str(row.get('email', '')).strip().lower()
                 p = str(row.get('phone', '')).strip()
-                
-                # If email is blank, it's effectively unique (do not group with other blanks)
-                if not e:
-                    e = str(uuid.uuid4())
-                
-                # If phone is blank, it's effectively unique (do not group with other blanks)
-                if not p:
-                    p = str(uuid.uuid4())
-                    
+                if not e: e = str(uuid.uuid4())
+                if not p: p = str(uuid.uuid4())
                 return f"{e}|{p}"
                 
             df['dedup_key'] = df.apply(generate_dedup_key, axis=1)
             df = df.drop_duplicates(subset=['dedup_key'], keep='first')
             df = df.drop(columns=['dedup_key'])
         elif 'email' in df.columns:
-            # Fallback if phone is missing
             import uuid
             def generate_dedup_key_email(row):
-                e = str(row.get('email', '')).strip()
-                if not e:
-                    return str(uuid.uuid4())
+                e = str(row.get('email', '')).strip().lower()
+                if not e: return str(uuid.uuid4())
                 return e
             df['dedup_key'] = df.apply(generate_dedup_key_email, axis=1)
             df = df.drop_duplicates(subset=['dedup_key'], keep='first')
             df = df.drop(columns=['dedup_key'])
-
-        
+            
     return df

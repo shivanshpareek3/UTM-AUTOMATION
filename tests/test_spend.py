@@ -13,7 +13,7 @@ def test_allocate_spend_lead_share():
         'spend': [100.0, 50.0],
         'Day': ['2024-01-01', '2024-01-01']
     })
-    sales_df, camp_spend, adset_spend, ad_spend = allocate_spend(sales, meta, '2024-01-01', '2024-01-01')
+    camp_spend, adset_spend, ad_spend = allocate_spend(leads, meta, '2024-01-01', '2024-01-01')
     
     assert camp_spend[camp_spend['camp_norm'] == 'c1']['spend'].iloc[0] == 100.0
     assert camp_spend[camp_spend['camp_norm'] == 'c2']['spend'].iloc[0] == 50.0
@@ -30,7 +30,7 @@ def test_allocate_spend_no_leads():
         'spend': [100.0],
         'Day': ['2024-01-01']
     })
-    sales_df, camp_spend, adset_spend, ad_spend = allocate_spend(sales, meta, '2024-01-01', '2024-01-01')
+    camp_spend, adset_spend, ad_spend = allocate_spend(leads, meta, '2024-01-01', '2024-01-01')
     
     assert camp_spend[camp_spend['camp_norm'] == 'c1']['spend'].iloc[0] == 100.0
 
@@ -44,7 +44,7 @@ def test_allocate_spend_zero_spend():
         'spend': [0.0],
         'Day': ['2024-01-01']
     })
-    sales_df, camp_spend, adset_spend, ad_spend = allocate_spend(sales, meta, '2024-01-01', '2024-01-01')
+    camp_spend, adset_spend, ad_spend = allocate_spend(leads, meta, '2024-01-01', '2024-01-01')
     
     assert camp_spend[camp_spend['camp_norm'] == 'c1']['spend'].iloc[0] == 0.0
     assert ad_spend[ad_spend['camp_norm'] == 'c1']['spend'].iloc[0] == 0.0

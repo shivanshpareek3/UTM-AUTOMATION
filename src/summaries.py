@@ -14,14 +14,12 @@ def build_summaries(all_sales_df: pd.DataFrame, leads_df: pd.DataFrame, camp_spe
         # Only include sales that have valid matching at this level or below
         valid_sales = all_sales_df.dropna(subset=level_cols)
         if valid_sales.empty:
-            sales_agg = pd.DataFrame(columns=level_cols + ['Sales', 'Revenue', 'Attributed_Spend'])
+            sales_agg = pd.DataFrame(columns=level_cols + ['Sales', 'Revenue'])
         else:
             sales_agg = valid_sales.groupby(level_cols).agg(
                 Sales=('sale_id', 'count'),
-                Revenue=('total_revenue', 'sum'),
-                Attributed_Spend=('attributed_spend', 'sum')
+                Revenue=('order_amount', 'sum')
             ).reset_index()
-            sales_agg['Profit'] = sales_agg['Revenue'] - sales_agg['Attributed_Spend']
             
         # Aggregate leads (if available)
         if not leads_df.empty and set(level_cols).issubset(leads_df.columns):
@@ -56,26 +54,26 @@ def build_summaries(all_sales_df: pd.DataFrame, leads_df: pd.DataFrame, camp_spe
         
         # Replace NaN with 0
         res = res.fillna({
-            'spend': 0.0, 'Sales': 0, 'Revenue': 0.0, 'Attributed_Spend': 0.0, 'Profit': 0.0, 'Leads': 0, 'reg_revenue': 0.0
+            'spend': 0.0, 'Sales': 0, 'Revenue': 0.0, 'Leads': 0, 'reg_revenue': 0.0
         })
         
         # Add standalone registration revenue to total Revenue
         res['Revenue'] = res['Revenue'] + res['reg_revenue']
         
-        # Compute Profit again in case it was missing for sales without spend
-        res['Profit'] = res['Revenue'] - res['Attributed_Spend']
-        
         # Rename spend column
         res = res.rename(columns={'spend': 'Spend'})
         
+        # Compute Profit
+        res['Profit'] = res['Revenue'] - res['Spend']
+        
         # Calculate rates
-        # Calculate rates
-        res['ROAS'] = res.apply(lambda r: (r['Revenue']/r['Attributed_Spend']) if r['Attributed_Spend'] > 0 else "N/A", axis=1)
-        res['ROI %'] = res.apply(lambda r: (r['Profit']/r['Attributed_Spend']*100) if r['Attributed_Spend'] > 0 else "N/A", axis=1)
+        res['ROAS'] = res.apply(lambda r: (r['Revenue']/r['Spend']) if r['Spend'] > 0 else "N/A", axis=1)
+        res['ROI %'] = res.apply(lambda r: (r['Profit']/r['Spend']*100) if r['Spend'] > 0 else "N/A", axis=1)
         res['CPL'] = res.apply(lambda r: (r['Spend']/r['Leads']) if r['Leads'] > 0 else "N/A", axis=1)
-        res['CAC'] = res.apply(lambda r: (r['Attributed_Spend']/r['Sales']) if (r['Attributed_Spend'] > 0 and r['Sales'] > 0) else "N/A", axis=1)
+        res['CAC'] = res.apply(lambda r: (r['Spend']/r['Sales']) if (r['Spend'] > 0 and r['Sales'] > 0) else "N/A", axis=1)
         res['Conversion Rate %'] = res.apply(lambda r: (r['Sales']/r['Leads']*100) if r['Leads'] > 0 else "N/A", axis=1)
         res['Profitable?'] = res['Profit'].apply(lambda p: 'YES' if p > 0 else 'NO')
+
         
         # Construct Node Name depending on level
         if len(level_cols) == 1:
