@@ -20,7 +20,13 @@ def parse_date_series(series: pd.Series) -> pd.Series:
     - Ambiguous dates like 01/02/2026 are assumed to be day-first (DD/MM/YYYY) 
       which aligns with typical Indian/European setups.
     """
+    if isinstance(series, pd.DataFrame):
+        series = series.iloc[:, 0]
+        
     def _parse_single(date_val):
+        if isinstance(date_val, pd.Series):
+            date_val = date_val.iloc[0]
+            
         if pd.isna(date_val):
             return pd.NaT
         text = str(date_val).strip()
@@ -53,7 +59,13 @@ def parse_date_range(series: pd.Series) -> pd.DataFrame:
     Returns a DataFrame with 'start_date' and 'end_date' columns.
     If it's a single date, start_date == end_date.
     """
+    if isinstance(series, pd.DataFrame):
+        series = series.iloc[:, 0]
+        
     def _parse_range_single(val):
+        if isinstance(val, pd.Series):
+            val = val.iloc[0]
+            
         if pd.isna(val):
             return pd.Series({'start_date': pd.NaT, 'end_date': pd.NaT})
             

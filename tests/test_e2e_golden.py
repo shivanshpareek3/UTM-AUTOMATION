@@ -60,12 +60,12 @@ def test_e2e_golden_methodology():
     assert metrics['unallocated_spend'] == 2500.0
     
     # 10. Verifies Revenue
-    # Backend Revenue = 5000 + 3000 = 8000
-    # Reg Revenue = 99 (test1) + 99 (test3) = 198
-    # Total = 8198
-    assert metrics['backend_revenue'] == 8000.0
+    # Backend Revenue (Matched) = 5000
+    # Reg Revenue from matched sales = 99 (test1)
+    # Total Matched = 5099
+    assert metrics['backend_revenue'] == 5000.0
     assert metrics['total_reg_revenue'] == 198.0
-    assert metrics['total_revenue'] == 8198.0
+    assert metrics['total_revenue'] == 5099.0
     
     # Attributed Revenue = test1 (5000 backend + 99 reg) = 5099
     assert metrics['attributed_revenue'] == 5099.0
@@ -76,7 +76,7 @@ def test_e2e_golden_methodology():
     # 12. Verifies ROAS (Attributed Rev / Attributed Spend = 5099 / 1000 = 5.099)
     assert round(metrics['roas'], 2) == 5.10
     
-    # 13. Verifies ROI (Profit / Attributed Spend = 4099 / 1000 = 409.9%)
+    # 13. Verifies ROI ((Profit / Attributed Spend) * 100 = (4099 / 1000) * 100 = 409.9)
     assert round(metrics['roi_percent'], 1) == 409.9
     
     # 14. Verifies CAC (Attributed Spend / Attributed Sales = 1000 / 1 = 1000)

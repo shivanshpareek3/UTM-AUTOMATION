@@ -44,9 +44,10 @@ def allocate_spend(leads_df: pd.DataFrame, meta_df: pd.DataFrame, start_date: st
     
     # Process leads to count proportions
     if leads_df.empty:
-        adset_empty = pd.DataFrame(columns=['camp_norm', 'adset_norm', 'spend'])
-        ad_empty = pd.DataFrame(columns=['camp_norm', 'adset_norm', 'ad_norm', 'spend'])
-        return camp_spend, adset_empty, ad_empty
+        adset_spend = window_meta.groupby(['camp_norm', 'adset_norm'])['spend'].sum().reset_index()
+        ad_spend = window_meta.groupby(['camp_norm', 'adset_norm', 'ad_norm'])['spend'].sum().reset_index()
+        return camp_spend, adset_spend, ad_spend
+        
         
     # Standardize lead UTMs
     leads = leads_df.copy()

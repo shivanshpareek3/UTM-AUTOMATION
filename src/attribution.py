@@ -55,16 +55,6 @@ def attribute_sales(sales_df: pd.DataFrame, leads_df: pd.DataFrame, sentinels: L
         return False
 
     def determine_attribution(row) -> Dict:
-        # Priority 1: Sales Sheet UTM (if the sales row natively has a valid UTM)
-        if has_valid_utm_row(row):
-            return {
-                'campaign': row.get('campaign'),
-                'ad_set': row.get('ad_set'),
-                'ad_creative': row.get('ad_creative'),
-                'attribution_source': 'Sales Sheet UTM',
-                'matched_to_lead': False
-            }
-            
         # Extract email and phone from sales row
         email = str(row.get('email', '')).strip().lower()
         if email in ('nan', 'none', 'null'):
@@ -73,6 +63,19 @@ def attribute_sales(sales_df: pd.DataFrame, leads_df: pd.DataFrame, sentinels: L
         phone = str(row.get('phone', '')).strip()
         if phone in ('nan', 'none', 'null'):
             phone = ''
+            
+        is_matched = bool((email and not leads_by_email.empty and email in leads_by_email.index) or \
+                          (phone and not leads_by_phone.empty and phone in leads_by_phone.index))
+                          
+        # Priority 1: Sales Sheet UTM (if the sales row natively has a valid UTM)
+        if has_valid_utm_row(row):
+            return {
+                'campaign': row.get('campaign'),
+                'ad_set': row.get('ad_set'),
+                'ad_creative': row.get('ad_creative'),
+                'attribution_source': 'Sales Sheet UTM',
+                'matched_to_lead': is_matched
+            }
             
         # Priority 2: Leads DB by Email
         if email and not leads_by_email.empty and email in leads_by_email.index:
@@ -132,8 +135,8 @@ def attribute_sales(sales_df: pd.DataFrame, leads_df: pd.DataFrame, sentinels: L
     df['match_level'] = df.apply(get_match_level, axis=1)
     
     # Finally, verify if the matched lead ACTUALLY has a campaign UTM
-    # (Because it's only a "Campaign-Attributed Sale" if it has a campaign)
-    df['matched_to_campaign'] = df.apply(lambda r: r['matched_to_lead'] and r['match_level'] != 'Unattributed', axis=1)
+    # OR if the sale has a native UTM
+    df['matched_to_campaign'] = df.apply(lambda r: r['match_level'] != 'Unattributed', axis=1)
     
     return df
 

@@ -34,27 +34,24 @@ def process_leads(df: pd.DataFrame, sentinels: List[str]) -> pd.DataFrame:
         
     df['has_valid_utm'] = df.apply(has_valid_utm, axis=1)
     
-    # Golden Methodology: Sort to keep the most recent with valid UTM
+    # Golden Methodology: Sort to keep the most recent with valid UTM for downstream attribution
     if 'registration_date' in df.columns:
         # 0. Sanitize Dummy/Test Leads (Golden Methodology)
-        # Test leads injected by QA or FB Lead Ads testing tools should be excluded
         def is_test_lead(row):
             e = str(row.get('email', '')).strip().lower()
-            f = str(row.get('first_name', '')).strip().lower()
+            f = str(row.get('name', '')).strip().lower() # renamed from first_name
             return e == 'test@gmail.com' or e == 'test@fb.com' or f == 'test'
             
         test_mask = df.apply(is_test_lead, axis=1)
         df = df[~test_mask]
         
         df = df.sort_values(by=['has_valid_utm', 'registration_date'], 
-                            ascending=[False, True])
+                            ascending=[False, False])
         
         # 1. Exact duplicates across all columns are removed
         df = df.drop_duplicates(keep='first')
         
         # 2. Deduplicate by email and phone combination
-        # This is the EXACT Golden Methodology logic for deduplication:
-        # We do not treat blank emails as same, nor blank phones as same.
         if 'email' in df.columns and 'phone' in df.columns:
             import uuid
             def generate_dedup_key(row):

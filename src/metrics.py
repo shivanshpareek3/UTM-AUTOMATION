@@ -11,8 +11,10 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
     # A sale is matched to a lead if email OR phone matches (matched_to_lead == True)
     if 'matched_to_lead' in sales_df.columns:
         matched_sales_df = sales_df[sales_df['matched_to_lead'] == True]
+    elif 'attribution_source' in sales_df.columns:
+        matched_sales_df = sales_df[sales_df['attribution_source'] != 'Unattributed']
     else:
-        matched_sales_df = sales_df[sales_df.get('attribution_source', '') != 'Unattributed']
+        matched_sales_df = sales_df
         
     sales_matched_to_lead = len(matched_sales_df)
     
@@ -60,18 +62,32 @@ def calculate_metrics(leads_df: pd.DataFrame, sales_df: pd.DataFrame, reg_rev_df
         
     # The automation previously used 'attributed_spend'. The Golden Rule states Headline KPIs 
     # (ROAS, CAC, CPL) must use TOTAL META AD SPEND as the denominator.
-    attributed_spend = sales_df['attributed_spend'].sum() if 'attributed_spend' in sales_df.columns else 0.0
+    if not campaign_matched_sales_df.empty and not meta_df.empty and 'spend' in meta_df.columns:
+        from src.normalization import unify_campaign_name
+        camps = campaign_matched_sales_df.get('campaign', pd.Series(dtype=str))
+        matched_camps = set(camps.dropna().apply(unify_campaign_name))
+        meta_copy = meta_df.copy()
+        camp_col = 'campaign' if 'campaign' in meta_copy.columns else ('Campaign Name' if 'Campaign Name' in meta_copy.columns else None)
+        if camp_col:
+            meta_copy['camp_norm'] = meta_copy[camp_col].apply(unify_campaign_name)
+            camp_spend = meta_copy.groupby('camp_norm')['spend'].sum().reset_index()
+            attributed_spend = camp_spend[camp_spend['camp_norm'].isin(matched_camps)]['spend'].sum()
+        else:
+            attributed_spend = 0.0
+    else:
+        attributed_spend = 0.0
+        
     unallocated_spend = raw_meta_spend - attributed_spend
     
     # Profit Calculation
-    # Profit/Loss = Matched Revenue - Total Spend
-    profit = matched_revenue - raw_meta_spend
+    # Profit/Loss = Attributed Revenue - Attributed Spend
+    profit = matched_revenue - attributed_spend
     
     # Headline KPIs
-    blended_roas = (matched_revenue / raw_meta_spend) if raw_meta_spend > 0 else 0.0
-    roi = (profit / raw_meta_spend * 100) if raw_meta_spend > 0 else 0.0
-    cpl = (raw_meta_spend / total_leads) if total_leads > 0 else 0.0
-    cac = (raw_meta_spend / sales_matched_to_lead) if sales_matched_to_lead > 0 else 0.0
+    blended_roas = (matched_revenue / attributed_spend) if attributed_spend > 0 else "N/A"
+    roi = (profit / attributed_spend * 100) if attributed_spend > 0 else "N/A"
+    cpl = (raw_meta_spend / total_leads) if total_leads > 0 else "N/A"
+    cac = (attributed_spend / sales_matched_to_lead) if sales_matched_to_lead > 0 else "N/A"
     cvr = (sales_matched_to_lead / total_leads * 100) if total_leads > 0 else 0.0
     
     # Registration & Funnel logic

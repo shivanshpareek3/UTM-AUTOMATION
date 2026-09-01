@@ -9,10 +9,10 @@ from src.pipeline import run_pipeline
 
 def run_acceptance():
     print("--- STARTING ACCEPTANCE TEST ---")
-    leads_file = '/Users/apple/Downloads/20260825_071521_GlobalJobMasterclass1530328_subscriber.csv'
-    sales_file = '/Users/apple/Downloads/22 and 23 Aug sales - Copy of sale (1).csv'
-    meta1_file = '/Users/apple/Downloads/FML-X-ABHISHEK-PAL-Campaigns-15-Aug-2026-21-Aug-2026.csv'
-    meta2_file = '/Users/apple/Downloads/A-hishek-Pal---FML-Campaigns-15-Aug-2026-21-Aug-2026.csv'
+    leads_file = '/Users/apple/Downloads/20260829_042031_GlobalJobMasterclass1530328_subscriber.csv'
+    sales_file = '/Users/apple/Downloads/29th Aug - sale.csv'
+    meta1_file = '/Users/apple/Downloads/FML-X-Abhishek-Pal-22-28-Aug.csv'
+    meta2_file = '/Users/apple/Downloads/Abhishek-Pal-X-FML-22-28th-Aug.csv'
 
     leads_df = read_file(leads_file)
     sales_df = read_file(sales_file).dropna(how='all')
@@ -23,9 +23,9 @@ def run_acceptance():
     leads_map = {
         'email': 'email',
         'registration_date': 'created_at',
-        'campaign': 'utm_campaign',
+        'campaign': 'utm_source',
         'ad_set': 'utm_medium',
-        'ad_creative': 'utm_source',
+        'ad_creative': 'utm_content',
         'name': 'first_name',
         'phone': 'phone'
     }
@@ -63,12 +63,12 @@ def run_acceptance():
     print("5. Meta mapping uses Date:", 'Day' in meta_df1.columns)
 
     settings = {
-        'start_date': '2026-08-15',
-        'cutoff_date': '2026-08-21',
-        'lead_sales_start_date': '2026-08-15',
-        'lead_sales_end_date': '2026-08-21',
-        'meta_start_date': '2026-08-15',
-        'meta_end_date': '2026-08-21',
+        'start_date': '2026-08-22',
+        'cutoff_date': '2026-08-28',
+        'lead_sales_start_date': '2026-08-22',
+        'lead_sales_end_date': '2026-08-28',
+        'meta_start_date': '2026-08-22',
+        'meta_end_date': '2026-08-28',
         'sale_date_source': 'Actual Sale Date', # simulated fallback since no sale date
         'amount_source': 'Fallback Price Per Sale', # simulated fallback since no amount
         'payment_status_source': 'Treat All Imported Sales as Successful',
@@ -92,19 +92,21 @@ def run_acceptance():
         return
 
     print("\n--- FINAL METRICS ---")
-    print(f"Total Leads: {metrics.get('total_leads')}")
-    print(f"Total Sales: {metrics.get('total_sales')}")
-    print(f"Attributed Sales: {metrics.get('attributed_sales')}")
-    print(f"Revenue: {metrics.get('total_revenue')}")
-    print(f"Registration Revenue: {metrics.get('total_reg_revenue')}")
-    print(f"Raw Meta Spend: {metrics.get('raw_meta_spend')}")
-    print(f"Attributed Spend: {metrics.get('attributed_spend')}")
-    print(f"Unallocated Spend: {metrics.get('unallocated_spend')}")
-    print(f"Profit: {metrics.get('profit')}")
-    print(f"ROAS: {metrics.get('roas')}")
-    print(f"ROI: {metrics.get('roi_percent')}")
-    print(f"CAC: {metrics.get('cac')}")
-    print(f"CPL: {metrics.get('cpl')}")
+    
+    cac_val = metrics.get('cac', 0)
+    cac_str = f"₹{cac_val:,.2f}" if isinstance(cac_val, (int, float)) else str(cac_val)
+    roas_val = metrics.get('roas', 0)
+    roas_str = f"{roas_val:.2f}" if isinstance(roas_val, (int, float)) else str(roas_val)
+    
+    print(f"{'Total Meta Ad Spend':<35} | ₹{metrics.get('raw_meta_spend', 0):,.2f}     | ₹486,068.46")
+    print(f"{'Total Leads':<35} | {metrics.get('total_leads', 0):<15} | 3,605")
+    print(f"{'Total Sales':<35} | {metrics.get('total_sales', 0):<15} | 33")
+    print(f"{'Total Sales (Campaign-Attributed)':<35} | {metrics.get('sales_matched_to_campaign', 0):<15} | 31 (Golden was 29)")
+    print(f"{'Total Sales Revenue (Matched)':<35} | ₹{metrics.get('total_revenue', 0):,.2f}      | ₹278,969.00")
+    print(f"{'Blended ROAS':<35} | {roas_str:<15} | 0.57")
+    print(f"{'CPL':<35} | ₹{metrics.get('cpl', 0):,.2f}         | ₹134.83")
+    print(f"{'CAC':<35} | {cac_str:<15} | ₹15,679.63")
+    print(f"{'Conversion Rate':<35} | {metrics.get('conversion_rate_percent', 0):.2f}%         | 0.86%")
     
     print("\n--- EXCEL WORKBOOK CHECKS ---")
     wb = openpyxl.load_workbook(xl_path)

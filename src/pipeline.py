@@ -224,10 +224,21 @@ def run_pipeline(
     sales_df['data_quality_warning'] = sales_df.apply(generate_warning, axis=1)
     
     # 7. Summaries
-    for col in ['camp_norm', 'adset_norm', 'ad_norm']:
-        if col not in sales_df.columns:
-            sales_df[col] = ''
-            
+    from src.normalization import unify_campaign_name, clean_text
+    if 'campaign' in sales_df.columns:
+        sales_df['camp_norm'] = sales_df['campaign'].apply(lambda x: unify_campaign_name(x) if pd.notna(x) else '')
+    else:
+        sales_df['camp_norm'] = ''
+        
+    if 'ad_set' in sales_df.columns:
+        sales_df['adset_norm'] = sales_df['ad_set'].apply(lambda x: clean_text(x).lower() if pd.notna(x) else '')
+    else:
+        sales_df['adset_norm'] = ''
+        
+    if 'ad_creative' in sales_df.columns:
+        sales_df['ad_norm'] = sales_df['ad_creative'].apply(lambda x: clean_text(x).lower() if pd.notna(x) else '')
+    else:
+        sales_df['ad_norm'] = ''
     camp_sum, adset_sum, ad_sum = build_summaries(sales_df, leads_in_window, camp_spend, adset_spend, ad_spend)
     
     # 8. Metrics
@@ -383,37 +394,6 @@ def run_pipeline(
         "4. 🎯 Ad Set Summary": adset_sum,
         "5. 🎨 Ad Creative Summary": ad_sum
     }
-    
-    # --- PHASE 1 RECONCILIATION PRINT ---
-    print("\n" + "="*50)
-    print("FINAL ACCEPTANCE RECONCILIATION TABLE")
-    print("="*50)
-    
-    # Format currency
-    def fmt_cur(val):
-        if pd.isna(val) or val == "N/A": return "N/A"
-        return f"₹{val:,.2f}"
-        
-    print(f"{'METRIC':<35} | {'AUTOMATION':<15} | {'CLAUDE GOLDEN'}")
-    print("-" * 75)
-    print(f"{'Total Meta Ad Spend':<35} | {fmt_cur(metrics['raw_meta_spend']):<15} | ₹486,068.46")
-    print(f"{'Total Leads':<35} | {metrics['total_leads']:<15} | 3,605")
-    print(f"{'Total Sales (Matched to Lead)':<35} | {metrics['sales_matched_to_lead']:<15} | 31")
-    print(f"{'Total Sales (Campaign-Attributed)':<35} | {metrics['sales_matched_to_campaign']:<15} | 29")
-    print(f"{'Total Sales Revenue (Matched)':<35} | {fmt_cur(metrics['total_revenue']):<15} | ₹278,969.00")
-    
-    roas_val = metrics['roas']
-    roas_str = f"{roas_val:.2f}" if isinstance(roas_val, (int, float)) else str(roas_val)
-    print(f"{'Blended ROAS':<35} | {roas_str:<15} | 0.57")
-    
-    print(f"{'CPL':<35} | {fmt_cur(metrics['cpl']):<15} | ₹134.83") # Note: Claude 3605 gives 486068.46/3605 = 134.83
-    print(f"{'CAC':<35} | {fmt_cur(metrics['cac']):<15} | ₹15,679.63")
-    
-    cvr_val = metrics['conversion_rate_percent']
-    cvr_str = f"{cvr_val:.2f}%" if isinstance(cvr_val, (int, float)) else str(cvr_val)
-    print(f"{'Conversion Rate':<35} | {cvr_str:<15} | 0.86%")
-    
-    print("="*75 + "\n")
     
     generate_workbook(output_filepath, workbook_data)
     

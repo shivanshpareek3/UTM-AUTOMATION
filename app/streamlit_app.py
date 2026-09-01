@@ -83,12 +83,12 @@ if st.button("🔄 Reset / Clear"):
     st.rerun()
 
 @st.cache_data(show_spinner=False)
-def load_df(file_name, file_size, file_bytes):
+def load_df(file_name, file_size, _file_bytes):
     import io
-    if not file_bytes:
+    if not _file_bytes:
         return None
     try:
-        return read_stream(io.BytesIO(file_bytes), file_name)
+        return read_stream(io.BytesIO(_file_bytes), file_name)
     except Exception as e:
         st.error(f"Error reading {file_name}: {str(e)}")
         return None
@@ -236,23 +236,30 @@ if leads_file and sales_file and meta_file1:
     inv_leads = {v: k for k, v in mapping_dict['leads'].items()}
     inv_sales = {v: k for k, v in mapping_dict['sales'].items()}
     
-    # 3. Rename columns
+    # 3. Copy DataFrames to prevent cache mutation
+    leads_df = leads_df.copy()
+    sales_df = sales_df.copy()
+    
+    # 4. Rename columns
     leads_df.rename(columns=inv_leads, inplace=True)
     sales_df.rename(columns=inv_sales, inplace=True)
     
     if meta_dfs:
+        meta_dfs_copies = []
         for i in range(len(meta_dfs)):
+            m_copy = meta_dfs[i].copy()
             inv_meta = {v: ('Day' if k == 'Date' else k) for k, v in mapping_dict['meta'][i].items()}
             
-            # If we are mapping some column (e.g. 'Reporting starts') to 'Day', and 'Day' natively exists
             if 'Date' in inv_meta.values():
                 mapped_col_for_date = [k for k, v in inv_meta.items() if v == 'Day'][0]
-                if mapped_col_for_date != 'Day' and 'Day' in meta_dfs[i].columns:
-                    meta_dfs[i] = meta_dfs[i].drop(columns=['Day'])
+                if mapped_col_for_date != 'Day' and 'Day' in m_copy.columns:
+                    m_copy = m_copy.drop(columns=['Day'])
                     
-            meta_dfs[i].rename(columns=inv_meta, inplace=True)
+            m_copy.rename(columns=inv_meta, inplace=True)
+            meta_dfs_copies.append(m_copy)
+        meta_dfs = meta_dfs_copies
             
-    meta_df = pd.concat(meta_dfs, ignore_index=True) if len(meta_dfs) > 1 else meta_dfs[0]
+    meta_df = pd.concat(meta_dfs, ignore_index=True) if len(meta_dfs) > 1 else meta_dfs[0] if meta_dfs else pd.DataFrame()
 
     for req_col in opt_leads:
         if req_col not in mapping_dict['leads']:
