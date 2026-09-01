@@ -28,6 +28,14 @@ def run_pipeline(
     Returns: (metrics, verification_df, excel_filepath)
     """
     
+    # Ensure no duplicate columns exist from UI mapping
+    if not leads_df.empty:
+        leads_df = leads_df.loc[:, ~leads_df.columns.duplicated()].copy()
+    if not sales_df.empty:
+        sales_df = sales_df.loc[:, ~sales_df.columns.duplicated()].copy()
+    if meta_dfs:
+        meta_dfs = [df.loc[:, ~df.columns.duplicated()].copy() for df in meta_dfs if not df.empty]
+
     # Load configs
     aliases = load_aliases()
     with open('config/sentinels.json', 'r') as f:
@@ -87,7 +95,7 @@ def run_pipeline(
                 range_df['end_date'] = end_range['end_date'].fillna(range_df['end_date'])
             
             # Validation: if Day was populated but NO dates could be parsed, raise error
-            if meta_df['Day'].notna().any() and range_df['start_date'].isna().all():
+            if bool(meta_df['Day'].notna().values.any()) and bool(range_df['start_date'].isna().values.all()):
                 raise ValueError("Could not parse any dates from Meta 'Day' column. Please verify date format.")
                 
             # Filter condition: source_start <= requested_end AND source_end >= requested_start

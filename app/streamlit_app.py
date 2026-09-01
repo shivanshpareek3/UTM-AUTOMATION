@@ -244,6 +244,10 @@ if leads_file and sales_file and meta_file1:
     leads_df.rename(columns=inv_leads, inplace=True)
     sales_df.rename(columns=inv_sales, inplace=True)
     
+    # Guarantee no duplicate columns from UI mapping before continuing
+    leads_df = leads_df.loc[:, ~leads_df.columns.duplicated()].copy()
+    sales_df = sales_df.loc[:, ~sales_df.columns.duplicated()].copy()
+    
     if meta_dfs:
         meta_dfs_copies = []
         for i in range(len(meta_dfs)):
@@ -256,6 +260,7 @@ if leads_file and sales_file and meta_file1:
                     m_copy = m_copy.drop(columns=['Day'])
                     
             m_copy.rename(columns=inv_meta, inplace=True)
+            m_copy = m_copy.loc[:, ~m_copy.columns.duplicated()].copy()
             meta_dfs_copies.append(m_copy)
         meta_dfs = meta_dfs_copies
             
