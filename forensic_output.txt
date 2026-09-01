@@ -1,0 +1,26 @@
+Loading data...
+Raw Leads Count: 3694
+Mapped Leads Count: 3694
+After process_leads: 3605
+Blank/invalid dates: 0
+Out of bounds dates: 544
+In bounds dates: 3061
+
+Running full pipeline to generate Reconciliation Table:
+
+==================================================
+FINAL ACCEPTANCE RECONCILIATION TABLE
+==================================================
+METRIC                              | AUTOMATION      | CLAUDE GOLDEN
+---------------------------------------------------------------------------
+Total Meta Ad Spend                 | ₹486,068.46     | ₹486,068.46
+Total Leads                         | 3605            | 3,605
+Total Sales (Matched to Lead)       | 31              | 31
+Total Sales (Campaign-Attributed)   | 31              | 29
+Total Sales Revenue (Matched)       | ₹278,969.00     | ₹278,969.00
+Blended ROAS                        | 0.57            | 0.57
+CPL                                 | ₹134.83         | ₹134.83
+CAC                                 | ₹15,679.63      | ₹15,679.63
+Conversion Rate                     | 0.86%           | 0.86%
+===========================================================================
+

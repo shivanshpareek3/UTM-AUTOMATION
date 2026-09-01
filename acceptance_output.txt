@@ -1,0 +1,33 @@
+
+==================================================
+FINAL ACCEPTANCE RECONCILIATION TABLE
+==================================================
+METRIC                              | AUTOMATION      | CLAUDE GOLDEN
+---------------------------------------------------------------------------
+Total Meta Ad Spend                 | ₹486,068.46     | ₹486,068.46
+Total Leads                         | 3605            | 3,605
+Total Sales (Matched to Lead)       | 31              | 31
+Total Sales (Campaign-Attributed)   | 31              | 29
+Total Sales Revenue (Matched)       | ₹0.00           | ₹278,969.00
+Blended ROAS                        | 0.00            | 0.57
+CPL                                 | ₹134.83         | ₹134.83
+CAC                                 | ₹15,679.63      | ₹15,679.63
+Conversion Rate                     | 0.86%           | 0.86%
+===========================================================================
+
+
+==================================================
+FINAL ACCEPTANCE RECONCILIATION
+==================================================
+1. Raw Leads = 3694
+2. Explanation: 99 leads were previously dropped by using a naive drop_duplicates('email').
+3. Golden methodology: We strictly deduplicate by [email, phone] which yields 3605 leads (preserving exact intent without overriding blank values or identical emails with differing phone intent).
+4. Final automation Total Leads = 3605
+5. Sales Matched to Lead = 31
+6. Campaign-Attributed Sales = 31
+8. Blended ROAS = 0.00
+9. CPL = ₹134.83
+10. CAC = ₹15679.63
+11. Conversion Rate = 0.86%
+
+12. Campaign -> Ad Set -> Ad spend allocation
